@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Move-Item -Destination \"c:\\\\Users\\\\isidr\\\\Desktop\\\\TurnoExpress\" -Force)"
+    ]
+  }
+}
