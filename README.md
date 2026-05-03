@@ -33,7 +33,7 @@ src/
     mercadopago.ts                 helpers MP (Preference, Payment)
     tenant.ts                      resolver de slug + slugs reservados
   auth.ts / auth.config.ts         Auth.js (split edge-safe / node)
-  middleware.ts                    protege /admin
+  proxy.ts                         protege /admin
 prisma/schema.prisma               modelo de datos
 ```
 

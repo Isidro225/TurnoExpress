@@ -1,6 +1,6 @@
 import type { NextAuthConfig } from "next-auth";
 
-// Edge-safe config (sin Prisma ni bcryptjs). Lo importa el middleware.
+// Config liviana para Proxy (sin Prisma ni bcryptjs).
 export const authConfig = {
   pages: { signIn: "/login" },
   providers: [],

@@ -1,15 +1,36 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { updateSettings, disconnectMercadoPago } from "./actions";
+import {
+  updateSettings,
+  disconnectMercadoPago,
+  updateMpCredentials,
+  verifyMpCredentials,
+} from "./actions";
+import { LogoUpload } from "./LogoUpload";
+import { MercadoPagoForm } from "./MercadoPagoForm";
 
 const MP_BANNERS: Record<string, { tone: "ok" | "err"; text: string }> = {
   connected: { tone: "ok", text: "Mercado Pago conectado correctamente." },
+  saved: { tone: "ok", text: "Credenciales de Mercado Pago guardadas." },
+  verified: { tone: "ok", text: "Conexión verificada con Mercado Pago." },
+  disconnected: { tone: "ok", text: "Mercado Pago desconectado." },
   error: { tone: "err", text: "Mercado Pago canceló la conexión." },
   "missing-code": { tone: "err", text: "Faltan datos en la respuesta de Mercado Pago." },
   "invalid-state": { tone: "err", text: "El estado de OAuth no es válido (probá de nuevo)." },
   "server-misconfigured": { tone: "err", text: "OAuth de MP no está configurado en el servidor." },
   "exchange-failed": { tone: "err", text: "No pudimos canjear el código con Mercado Pago." },
+  "bad-format": { tone: "err", text: "Formato de credenciales inválido. Revisá el access token." },
+  "no-token": { tone: "err", text: "Todavía no cargaste credenciales." },
+  "verify-failed": {
+    tone: "err",
+    text: "Mercado Pago rechazó el token. Probá generarlo de nuevo.",
+  },
 };
+
+function maskToken(token: string): string {
+  if (token.length <= 8) return "•••";
+  return `${token.slice(0, 8)}…${token.slice(-4)}`;
+}
 
 export default async function SettingsPage({
   searchParams,
@@ -25,6 +46,7 @@ export default async function SettingsPage({
   const oauthConfigured = !!process.env.MP_OAUTH_CLIENT_ID;
   const sp = await searchParams;
   const banner = sp.mp ? MP_BANNERS[sp.mp] : undefined;
+  const isConnected = !!tenant.mpAccessToken;
 
   return (
     <div className="max-w-2xl space-y-10">
@@ -39,6 +61,7 @@ export default async function SettingsPage({
           {banner.text}
         </div>
       )}
+
       <div>
         <h1 className="text-2xl font-semibold mb-6">Configuración</h1>
         <form action={updateSettings} className="space-y-4 rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
@@ -58,6 +81,7 @@ export default async function SettingsPage({
               className="w-full rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-800"
             />
           </Field>
+          <LogoUpload defaultValue={tenant.logoUrl} />
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Color principal">
               <input
@@ -78,6 +102,41 @@ export default async function SettingsPage({
               />
             </Field>
           </div>
+
+          <fieldset>
+            <legend className="mb-2 block text-sm">Color de fondo</legend>
+            <div className="flex gap-3">
+              {[
+                { value: "white", label: "Blanco", swatch: "#ffffff", border: true },
+                { value: "gray", label: "Gris", swatch: "#e4e4e7" },
+                { value: "black", label: "Negro", swatch: "#09090b" },
+              ].map((opt) => {
+                const current = tenant.backgroundColor ?? "white";
+                return (
+                  <label key={opt.value} className="cursor-pointer">
+                    <input
+                      type="radio"
+                      name="backgroundColor"
+                      value={opt.value}
+                      defaultChecked={current === opt.value}
+                      className="peer sr-only"
+                    />
+                    <div className="flex flex-col items-center gap-1.5 rounded-lg border-2 border-transparent p-2 transition peer-checked:border-sky-500 peer-checked:ring-2 peer-checked:ring-sky-500/25">
+                      <span
+                        className={`block h-12 w-12 rounded-md ${opt.border ? "border border-zinc-200" : ""}`}
+                        style={{ backgroundColor: opt.swatch }}
+                      />
+                      <span className="text-xs">{opt.label}</span>
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+            <p className="mt-2 text-xs text-zinc-500">
+              Si elegís negro, los textos y las cards de la turnera pública se adaptan
+              automáticamente al modo oscuro.
+            </p>
+          </fieldset>
           <div>
             <p className="text-xs uppercase tracking-wider text-zinc-500">URL pública</p>
             <p className="mt-1 font-mono text-sm">/{tenant.slug}</p>
@@ -93,47 +152,70 @@ export default async function SettingsPage({
 
       <div>
         <h2 className="text-lg font-semibold mb-3">Mercado Pago</h2>
-        <div className="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
-          {tenant.mpAccessToken ? (
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-emerald-600">Cuenta conectada</p>
-                <p className="text-sm text-zinc-500">
-                  Las señas se cobran a tu cuenta de Mercado Pago.
-                </p>
-              </div>
-              <form action={disconnectMercadoPago}>
-                <button
-                  type="submit"
-                  className="rounded-md border border-red-300 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 dark:border-red-900 dark:hover:bg-red-950"
-                >
-                  Desconectar
-                </button>
-              </form>
-            </div>
-          ) : oauthConfigured ? (
-            <div>
-              <p className="mb-1 font-medium">Conectá tu cuenta</p>
-              <p className="text-sm text-zinc-500 mb-4">
-                Usamos OAuth oficial de Mercado Pago. No guardamos tu clave.
+        <p className="mb-3 text-sm text-zinc-500">
+          Cada negocio cobra a su propia cuenta de Mercado Pago. Conectalo por OAuth
+          (recomendado) o pegando tus credenciales.
+        </p>
+        <div className="space-y-4 rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+          {isConnected ? (
+            <div className="space-y-2">
+              <p className="font-medium text-emerald-600">Cuenta conectada</p>
+              <p className="text-xs text-zinc-500">
+                Token: <span className="font-mono">{maskToken(tenant.mpAccessToken!)}</span>
+                {tenant.mpAccessToken!.startsWith("TEST-") && " · modo sandbox"}
+                {tenant.mpPublicKey ? " · public key configurada" : " · sin public key"}
               </p>
-              <a
-                href="/api/mercadopago/oauth/connect"
-                className="inline-block rounded-md bg-[#009ee3] px-4 py-2 text-sm font-medium text-white hover:bg-[#0086c4]"
-              >
-                Conectar Mercado Pago
-              </a>
+              <div className="flex flex-wrap gap-2 pt-2">
+                <form action={verifyMpCredentials}>
+                  <button
+                    type="submit"
+                    className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                  >
+                    Probar conexión
+                  </button>
+                </form>
+                <form action={disconnectMercadoPago}>
+                  <button
+                    type="submit"
+                    className="rounded-md border border-red-300 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 dark:border-red-900 dark:hover:bg-red-950"
+                  >
+                    Desconectar
+                  </button>
+                </form>
+              </div>
             </div>
           ) : (
-            <div>
-              <p className="mb-1 font-medium">OAuth no está configurado</p>
-              <p className="text-sm text-zinc-500">
-                Configurá <code>MP_OAUTH_CLIENT_ID</code> y{" "}
-                <code>MP_OAUTH_CLIENT_SECRET</code> en las variables de entorno
-                para habilitar la conexión por OAuth.
-              </p>
+            <div className="space-y-3">
+              {oauthConfigured ? (
+                <div>
+                  <a
+                    href="/api/mercadopago/oauth/connect"
+                    className="inline-block rounded-md bg-[#009ee3] px-4 py-2 text-sm font-medium text-white hover:bg-[#0086c4]"
+                  >
+                    Conectar con Mercado Pago (OAuth)
+                  </a>
+                </div>
+              ) : (
+                <p className="text-xs text-zinc-500">
+                  OAuth no está habilitado en el servidor. Configurá{" "}
+                  <code>MP_OAUTH_CLIENT_ID</code> y <code>MP_OAUTH_CLIENT_SECRET</code> para
+                  habilitarlo, o usá la entrada manual de abajo.
+                </p>
+              )}
             </div>
           )}
+
+          <details className="border-t border-zinc-200 pt-4 dark:border-zinc-800" open={!isConnected}>
+            <summary className="cursor-pointer text-sm font-medium">
+              {isConnected ? "Reemplazar credenciales manualmente" : "Conectar manualmente"}
+            </summary>
+            <div className="mt-3">
+              <MercadoPagoForm
+                action={updateMpCredentials}
+                hasPublicKey={!!tenant.mpPublicKey}
+              />
+            </div>
+          </details>
         </div>
       </div>
     </div>
