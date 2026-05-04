@@ -32,6 +32,12 @@ model Tenant {
   // % de seña por defecto sobre el precio del servicio (override por servicio si hace falta)
   depositPct    Int      @default(30)
 
+  // Billing de TurnoExpress (abono mensual que paga el negocio a la plataforma)
+  billingPlan          String  @default("pro")
+  billingStatus        String  @default("pending")
+  mpSubscriptionId     String? @unique
+  mpSubscriptionStatus String?
+
   active        Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt

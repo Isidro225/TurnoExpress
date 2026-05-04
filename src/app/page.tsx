@@ -2,6 +2,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { Reveal } from "./_components/Reveal";
 import { ThemeToggle } from "./_components/ThemeToggle";
+import {
+  type BillingPlanId,
+  formatBillingPlanPrice,
+} from "@/lib/billing-plans";
 
 export default function Home() {
   return (
@@ -65,7 +69,7 @@ function Nav() {
             Iniciar sesión
           </Link>
           <Link
-            href="/signup"
+            href="/signup?plan=pro"
             className="ml-1 rounded-md bg-gradient-to-r from-sky-500 to-emerald-500 px-4 py-2 font-medium text-white shadow-sm shadow-sky-500/25 transition hover:shadow-md hover:shadow-sky-500/40"
           >
             Crear mi turnera
@@ -88,7 +92,7 @@ function Nav() {
                 Iniciar sesión
               </Link>
               <Link
-                href="/signup"
+                href="/signup?plan=pro"
                 className="mt-1 block rounded-lg bg-gradient-to-r from-sky-500 to-emerald-500 px-3 py-2 text-center font-medium text-white transition hover:opacity-90"
               >
                 Crear mi turnera
@@ -155,10 +159,10 @@ function Hero() {
             style={{ animationDelay: "360ms" }}
           >
             <Link
-              href="/signup"
+              href="/signup?plan=pro"
               className="group relative overflow-hidden rounded-md bg-gradient-to-r from-sky-500 to-emerald-500 px-5 py-3 font-medium text-white shadow-lg shadow-sky-500/25 transition hover:-translate-y-0.5 hover:shadow-xl hover:shadow-sky-500/40"
             >
-              <span className="relative z-10">Empezar gratis</span>
+              <span className="relative z-10">Empezar ahora</span>
               <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
             </Link>
             <a
@@ -780,6 +784,7 @@ function Industries() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 type Plan = {
+  slug: BillingPlanId;
   name: string;
   tagline: string;
   price: string;
@@ -793,9 +798,10 @@ type Plan = {
 
 const PLANS: Plan[] = [
   {
+    slug: "basic",
     name: "Básico",
     tagline: "Para empezar a tomar turnos sin invertir de más.",
-    price: "$13.000",
+    price: formatBillingPlanPrice("basic"),
     priceNote: "/mes",
     features: [
       "1 profesional",
@@ -817,9 +823,10 @@ const PLANS: Plan[] = [
     cta: "Probar Básico",
   },
   {
+    slug: "pro",
     name: "Pro",
     tagline: "Para negocios establecidos con equipo y volumen.",
-    price: "$25.000",
+    price: formatBillingPlanPrice("pro"),
     priceNote: "/mes",
     highlight: true,
     features: [
@@ -842,9 +849,10 @@ const PLANS: Plan[] = [
     cta: "Empezar con Pro",
   },
   {
+    slug: "premium",
     name: "Premium",
     tagline: "Para centros, cadenas y operaciones grandes.",
-    price: "$45.000",
+    price: formatBillingPlanPrice("premium"),
     priceNote: "/mes",
     features: [
       "Profesionales ilimitados",
@@ -863,7 +871,7 @@ const PLANS: Plan[] = [
       "Pensado para volumen — si no lo necesitás, Pro alcanza",
       "Precio más alto",
     ],
-    cta: "Hablemos",
+    cta: "Contratar Premium",
   },
 ];
 
@@ -953,7 +961,7 @@ function Pricing() {
             </div>
 
             <Link
-              href="/signup"
+              href={`/signup?plan=${plan.slug}`}
               className={`mt-auto block rounded-md py-2.5 text-center text-sm font-medium transition ${
                 plan.highlight
                   ? "bg-sky-500 text-white hover:bg-sky-600 hover:shadow-md hover:shadow-sky-500/30"
@@ -1126,14 +1134,14 @@ function FinalCta() {
           Tus clientes ya están listos para reservar online.
         </h2>
         <p className="mt-3 text-zinc-600 dark:text-zinc-400">
-          Creá tu turnera ahora. Sin tarjeta, sin instalar nada.
+          Creá tu turnera ahora y activá tu plan con Mercado Pago.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-3">
           <Link
-            href="/signup"
+            href="/signup?plan=pro"
             className="group relative overflow-hidden rounded-md bg-sky-500 px-6 py-3 text-white shadow-lg shadow-sky-500/30 transition hover:-translate-y-0.5 hover:bg-sky-600 hover:shadow-sky-500/50"
           >
-            <span className="relative z-10">Crear mi turnera gratis</span>
+            <span className="relative z-10">Crear mi turnera</span>
             <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
           </Link>
           <Link

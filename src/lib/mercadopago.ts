@@ -25,6 +25,22 @@ export type CreateDepositArgs = {
   baseUrl: string;
 };
 
+export type CreatePlatformSubscriptionArgs = {
+  accessToken: string;
+  tenantId: string;
+  planName: string;
+  amountCents: number;
+  payerEmail: string;
+  baseUrl: string;
+};
+
+export type MpPreapprovalResponse = {
+  id?: string;
+  init_point?: string;
+  status?: string;
+  external_reference?: string | number;
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // OAuth — cada negocio conecta su cuenta MP.
 // Docs: https://www.mercadopago.com.ar/developers/es/docs/security/oauth/introduction
@@ -95,4 +111,60 @@ export async function createDepositPreference(args: CreateDepositArgs) {
     },
   });
   return result;
+}
+
+export async function createPlatformSubscription(
+  args: CreatePlatformSubscriptionArgs
+): Promise<MpPreapprovalResponse> {
+  const res = await fetch("https://api.mercadopago.com/preapproval", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${args.accessToken}`,
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify({
+      reason: `TurnoExpress ${args.planName}`,
+      external_reference: args.tenantId,
+      payer_email: args.payerEmail,
+      auto_recurring: {
+        frequency: 1,
+        frequency_type: "months",
+        transaction_amount: args.amountCents / 100,
+        currency_id: "ARS",
+      },
+      back_url: `${args.baseUrl}/admin?billing=return`,
+      status: "pending",
+    }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`MP subscription create failed: ${res.status} ${text}`);
+  }
+
+  return (await res.json()) as MpPreapprovalResponse;
+}
+
+export async function getPlatformSubscription(
+  accessToken: string,
+  subscriptionId: string
+): Promise<MpPreapprovalResponse> {
+  const res = await fetch(
+    `https://api.mercadopago.com/preapproval/${encodeURIComponent(subscriptionId)}`,
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        Accept: "application/json",
+      },
+      cache: "no-store",
+    }
+  );
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`MP subscription get failed: ${res.status} ${text}`);
+  }
+
+  return (await res.json()) as MpPreapprovalResponse;
 }

@@ -1,6 +1,15 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { mpPayment } from "@/lib/mercadopago";
+import { getPlatformSubscription, mpPayment } from "@/lib/mercadopago";
+
+function mapSubscriptionStatus(status: string | undefined): string {
+  const normalized = (status ?? "").toLowerCase();
+  if (normalized === "authorized" || normalized === "active") return "active";
+  if (normalized === "cancelled" || normalized === "canceled") return "cancelled";
+  if (normalized === "paused") return "paused";
+  if (normalized === "pending") return "pending";
+  return normalized || "pending";
+}
 
 // MP envía notificaciones a esta URL. Soportamos el formato nuevo (`type` + `data.id`).
 // https://www.mercadopago.com.ar/developers/es/docs/your-integrations/notifications/webhooks
@@ -14,11 +23,49 @@ export async function POST(req: Request) {
 
   const data = payload as {
     type?: string;
+    topic?: string;
     action?: string;
     data?: { id?: string };
   };
 
-  if (data.type !== "payment" || !data.data?.id) {
+  const notificationType = data.type ?? data.topic;
+
+  if (notificationType === "subscription_preapproval" && data.data?.id) {
+    const platformAccessToken = process.env.MP_PLATFORM_ACCESS_TOKEN?.trim();
+    if (!platformAccessToken) {
+      return NextResponse.json({ ok: true, note: "missing-platform-token" });
+    }
+
+    const subscriptionId = String(data.data.id);
+    try {
+      const detail = await getPlatformSubscription(platformAccessToken, subscriptionId);
+      const externalReference = detail.external_reference
+        ? String(detail.external_reference)
+        : null;
+      const subscriptionStatus = detail.status ?? "pending";
+      const billingStatus = mapSubscriptionStatus(subscriptionStatus);
+
+      await prisma.tenant.updateMany({
+        where: {
+          OR: [
+            { mpSubscriptionId: subscriptionId },
+            ...(externalReference ? [{ id: externalReference }] : []),
+          ],
+        },
+        data: {
+          billingStatus,
+          mpSubscriptionId: subscriptionId,
+          mpSubscriptionStatus: subscriptionStatus,
+        },
+      });
+    } catch {
+      return NextResponse.json({ ok: true, note: "subscription-sync-failed" });
+    }
+
+    return NextResponse.json({ ok: true });
+  }
+
+  if (notificationType !== "payment" || !data.data?.id) {
     return NextResponse.json({ ok: true });
   }
 

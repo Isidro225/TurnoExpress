@@ -183,7 +183,7 @@ export default async function TenantLayout({
             </p>
             <Link
               href={`/${tenant.slug}`}
-              className="mt-1 block text-3xl font-semibold tracking-normal sm:text-5xl"
+              className="mt-1 block text-2xl font-semibold tracking-normal sm:text-5xl"
               style={{
                 color: "var(--brand-foreground)",
                 fontFamily: titleFontStack,
@@ -191,14 +191,6 @@ export default async function TenantLayout({
             >
               {tenant.name}
             </Link>
-            {tenant.description && (
-              <p
-                className="mt-3 max-w-2xl text-sm leading-6 sm:text-base"
-                style={{ color: "var(--brand-foreground)", opacity: 0.82 }}
-              >
-                {tenant.description}
-              </p>
-            )}
           </div>
 
           <div className="flex items-start justify-end bg-white px-4 py-8 sm:px-6 sm:py-10">
@@ -207,7 +199,7 @@ export default async function TenantLayout({
               <img
                 src={tenant.logoUrl}
                 alt={tenant.name}
-                className="max-h-20 max-w-full object-contain sm:max-h-28"
+                className="max-h-21 max-w-full object-contain sm:max-h-28"
               />
             ) : (
               <span

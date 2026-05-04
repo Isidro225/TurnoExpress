@@ -1,4 +1,4 @@
 export function isBookingPaymentBypassEnabled() {
-  // Temporary test mode: set BOOKING_PAYMENT_BYPASS=false to restore Mercado Pago.
-  return process.env.BOOKING_PAYMENT_BYPASS !== "false";
+  // Mercado Pago is enabled by default. Use BOOKING_PAYMENT_BYPASS=true only for local tests.
+  return process.env.BOOKING_PAYMENT_BYPASS === "true";
 }

@@ -32,9 +32,14 @@ function pctDelta(current: number, previous: number): number | null {
   return ((current - previous) / previous) * 100;
 }
 
-export default async function AdminDashboard() {
+export default async function AdminDashboard({
+  searchParams,
+}: {
+  searchParams: Promise<{ billing?: string }>;
+}) {
   const session = await auth();
   const tenantId = session!.user.tenantId!;
+  const sp = await searchParams;
 
   const now = new Date();
   const monthStart = startOfMonth(now);
@@ -123,6 +128,12 @@ export default async function AdminDashboard() {
         title="Resumen"
         description={`Hola ${session!.user.name ?? session!.user.email}, esto es lo que pasa hoy en tu negocio.`}
       />
+
+      {sp.billing === "return" && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300">
+          Volviste de Mercado Pago. Si el pago quedÃ³ aprobado, la suscripciÃ³n se actualiza por webhook.
+        </div>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
