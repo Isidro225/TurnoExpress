@@ -21,6 +21,7 @@ model Tenant {
   description     String?
   logoUrl         String?
   primaryColor    String?  @default("#0ea5e9")
+  titleFont       String   @default("system")
   timezone        String   @default("America/Argentina/Buenos_Aires")
   currency      String   @default("ARS")
 

@@ -21,7 +21,7 @@ import {
   ClockIcon,
 } from "../_components/AdminIcons";
 
-const HOUR_HEIGHT = 48;
+const HOUR_HEIGHT = 64;
 const START_HOUR = 7;
 const END_HOUR = 23;
 const TOTAL_HOURS = END_HOUR - START_HOUR;
@@ -334,34 +334,40 @@ export default async function CalendarPage({
                   const startMin = Math.max(0, minutesFromStart(a.startsAt));
                   const endMin = Math.min(TOTAL_HOURS * 60, minutesFromStart(a.endsAt));
                   const top = (startMin / 60) * HOUR_HEIGHT;
-                  const height = Math.max(20, ((endMin - startMin) / 60) * HOUR_HEIGHT - 2);
+                  const durationHeight = ((endMin - startMin) / 60) * HOUR_HEIGHT - 3;
+                  const height = Math.max(56, durationHeight);
+                  const showStaff = height >= 68;
                   const cfg = STATUS_STYLES[a.status] ?? {
                     box: "bg-zinc-50 text-zinc-700",
                     bar: "border-zinc-400",
                   };
                   const paid = a.payments.some((p) => p.status === "APPROVED");
+                  const statusLabel = STATUS_LABEL[a.status] ?? a.status;
                   return (
                     <Link
                       key={a.id}
                       href={`/admin/appointments/${a.id}`}
-                      title={`${a.customerName} · ${a.service.name} · ${a.staff.name} · ${a.status}`}
-                      className={`absolute left-1 right-1 z-10 overflow-hidden rounded-md border-l-4 px-1.5 py-1 text-[11px] leading-tight shadow-sm transition ${cfg.box} ${cfg.bar}`}
+                      title={`${format(a.startsAt, "HH:mm")} - ${format(a.endsAt, "HH:mm")} | ${a.customerName} | ${a.service.name} | ${a.staff.name} | ${statusLabel}`}
+                      className={`absolute left-1.5 right-1.5 z-10 overflow-hidden rounded-lg border-l-4 px-2 py-1.5 text-[11px] leading-tight shadow-sm ring-1 ring-black/5 transition hover:z-20 hover:shadow-md ${cfg.box} ${cfg.bar}`}
                       style={{ top, height }}
                     >
                       <div className="flex items-center justify-between gap-1">
-                        <span className="font-semibold">{format(a.startsAt, "HH:mm")}</span>
+                        <span className="truncate font-semibold">
+                          {format(a.startsAt, "HH:mm")} - {format(a.endsAt, "HH:mm")}
+                        </span>
                         {paid ? (
-                          <CreditCardIcon className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+                          <CreditCardIcon className="h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
                         ) : a.status === "PENDING_PAYMENT" ? (
-                          <ClockIcon className="h-3 w-3 text-amber-600 dark:text-amber-400" />
+                          <ClockIcon className="h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
                         ) : null}
                       </div>
-                      <div className="truncate font-medium">{a.customerName}</div>
-                      {height > 36 && (
-                        <div className="truncate text-[10px] opacity-80">
-                          {a.service.name} · {a.staff.name}
-                        </div>
-                      )}
+                      <div className="mt-0.5 truncate font-semibold">
+                        {a.customerName}
+                      </div>
+                      <div className="truncate text-[10px] opacity-80">
+                        {a.service.name}
+                        {showStaff ? ` | ${a.staff.name}` : ""}
+                      </div>
                     </Link>
                   );
                 })}

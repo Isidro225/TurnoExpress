@@ -41,8 +41,11 @@ export default async function TenantPublicPage({
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
       {servicesForFlow.length === 0 ? (
-        <div className="rounded-lg border border-zinc-200 bg-white p-6 text-sm text-zinc-500 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-          Todavía no hay servicios con profesional asignado. Volvé en un rato.
+        <div className="rounded-lg border border-[color:var(--brand-border)] bg-white p-6 text-sm shadow-sm">
+          <p className="font-semibold text-zinc-950">Todavía no hay turnos disponibles</p>
+          <p className="mt-1 text-zinc-500">
+            El negocio todavía no cargó servicios con profesional asignado. Volvé en un rato.
+          </p>
         </div>
       ) : (
         <BookingFlow

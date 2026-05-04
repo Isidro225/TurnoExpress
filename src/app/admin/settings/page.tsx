@@ -11,6 +11,11 @@ import { MercadoPagoForm } from "./MercadoPagoForm";
 import { PageHeader } from "../_components/PageHeader";
 import { ColorPicker } from "../_components/ColorPicker";
 import { CheckIcon } from "../_components/AdminIcons";
+import {
+  TENANT_TITLE_FONTS,
+  TENANT_TITLE_FONT_VALUES,
+  normalizeTenantTitleFont,
+} from "@/lib/tenant-fonts";
 
 const MP_BANNERS: Record<string, { tone: "ok" | "err"; text: string }> = {
   connected: { tone: "ok", text: "Mercado Pago conectado correctamente." },
@@ -50,6 +55,9 @@ export default async function SettingsPage({
   const sp = await searchParams;
   const banner = sp.mp ? MP_BANNERS[sp.mp] : undefined;
   const isConnected = !!tenant.mpAccessToken;
+  const tenantTitleFont = normalizeTenantTitleFont(
+    (tenant as { titleFont?: string | null }).titleFont
+  );
 
   return (
     <div className="max-w-3xl space-y-8">
@@ -108,6 +116,22 @@ export default async function SettingsPage({
           </Field>
           <Field label="Color principal" hint="Acento que se aplica a botones y chips de tu turnera.">
             <ColorPicker name="primaryColor" defaultValue={tenant.primaryColor} />
+          </Field>
+          <Field
+            label="Fuente del título"
+            hint="Se aplica al nombre del negocio en la página pública."
+          >
+            <select
+              name="titleFont"
+              defaultValue={tenantTitleFont}
+              className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm transition focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20 dark:border-zinc-700 dark:bg-zinc-950"
+            >
+              {TENANT_TITLE_FONT_VALUES.map((font) => (
+                <option key={font} value={font}>
+                  {TENANT_TITLE_FONTS[font].label}
+                </option>
+              ))}
+            </select>
           </Field>
           <Field
             label="% de seña por defecto"

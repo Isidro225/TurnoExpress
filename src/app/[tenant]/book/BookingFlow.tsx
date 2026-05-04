@@ -216,6 +216,7 @@ export function BookingFlow(props: Props) {
             title="Servicio"
             subtitle="Elegí qué querés reservar"
             active={activeStep === 1}
+            complete={activeStep > 1}
           >
             <ServiceCards
               services={props.services}
@@ -230,6 +231,7 @@ export function BookingFlow(props: Props) {
             subtitle="Encontrá un momento disponible"
             muted={!service}
             active={activeStep === 2}
+            complete={activeStep > 2}
           >
             {service ? (
               <div className="space-y-5">
@@ -262,7 +264,9 @@ export function BookingFlow(props: Props) {
                 />
               </div>
             ) : (
-              <EmptyStep>Primero elegí un servicio para ver la agenda disponible.</EmptyStep>
+              <EmptyStep title="Elegí un servicio">
+                Primero seleccioná qué querés reservar para ver la agenda disponible.
+              </EmptyStep>
             )}
           </StepSection>
 
@@ -308,7 +312,9 @@ export function BookingFlow(props: Props) {
                 {error && <p className="text-sm font-medium text-red-600">{error}</p>}
               </div>
             ) : (
-              <EmptyStep>Elegí fecha y horario para completar tus datos.</EmptyStep>
+              <EmptyStep title="Falta el horario">
+                Elegí fecha y horario para completar tus datos.
+              </EmptyStep>
             )}
           </StepSection>
         </div>
@@ -331,22 +337,16 @@ export function BookingFlow(props: Props) {
 function BookingHeader({ activeStep }: { activeStep: number }) {
   return (
     <section
-      className="overflow-hidden rounded-lg border border-[color:var(--brand-border)] bg-white shadow-sm"
+      className="overflow-hidden rounded-lg border border-[color:var(--brand-border)] bg-white/95 shadow-sm backdrop-blur"
       style={{ boxShadow: "0 18px 60px var(--brand-shadow)" }}
     >
-      <div
-        className="px-5 py-5 text-white sm:px-6"
-        style={{
-          backgroundImage:
-            "linear-gradient(135deg, var(--brand-deep), var(--brand-dark), var(--brand))",
-        }}
-      >
+      <div className="px-5 py-5 sm:px-6">
         <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase text-[color:var(--brand-on-dark)]">
-              Reserva online
+            <p className="text-xs font-semibold uppercase text-[color:var(--brand-strong)]">
+              Reservá tu turno
             </p>
-            <h2 className="mt-1 text-2xl font-semibold">Elegí tu turno</h2>
+            <h2 className="mt-1 text-2xl font-semibold text-zinc-950">Armá tu reserva</h2>
           </div>
           <StepProgress activeStep={activeStep} />
         </div>
@@ -497,7 +497,9 @@ function TimePicker({
       {loading ? (
         <SlotSkeleton />
       ) : totalSlots === 0 ? (
-        <EmptyStep>Sin horarios para esta fecha.</EmptyStep>
+        <EmptyStep title="No hay horarios para ese día">
+          Probá con otra fecha o cambiá el profesional seleccionado.
+        </EmptyStep>
       ) : showGroups ? (
         <div className="space-y-4">
           {availability
@@ -566,10 +568,16 @@ function SlotGrid({
 
 function SlotSkeleton() {
   return (
-    <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-      {Array.from({ length: 8 }).map((_, index) => (
-        <div key={index} className="h-11 animate-pulse rounded-lg bg-zinc-100" />
-      ))}
+    <div className="rounded-lg border border-zinc-200 bg-white p-3">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="h-3 w-36 animate-pulse rounded-full bg-zinc-100" />
+        <div className="h-3 w-16 animate-pulse rounded-full bg-zinc-100" />
+      </div>
+      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+        {Array.from({ length: 8 }).map((_, index) => (
+          <div key={index} className="h-11 animate-pulse rounded-lg bg-zinc-100" />
+        ))}
+      </div>
     </div>
   );
 }
@@ -679,19 +687,21 @@ function StepProgress({ activeStep }: { activeStep: number }) {
         return (
           <div
             key={label}
-            className={`rounded-full border px-3 py-2 ${
+            className={`rounded-full border px-3 py-2 transition ${
               active || done
-                ? "border-white/25 bg-white/15 text-white"
-                : "border-white/10 bg-white/5 text-zinc-300"
+                ? "border-[color:var(--brand-border)] bg-[color:var(--brand-soft)] text-zinc-950"
+                : "border-zinc-200 bg-white text-zinc-500"
             }`}
           >
             <div className="flex items-center gap-2">
               <span
                 className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-semibold ${
-                  active || done ? "bg-white text-zinc-950" : "bg-white/10 text-zinc-300"
+                  active || done
+                    ? "bg-[color:var(--brand)] text-[color:var(--brand-foreground)]"
+                    : "bg-zinc-100 text-zinc-500"
                 }`}
               >
-                {step}
+                {done ? "✓" : step}
               </span>
               <span className="truncate font-medium">{label}</span>
             </div>
@@ -708,6 +718,7 @@ function StepSection({
   subtitle,
   muted = false,
   active = false,
+  complete = false,
   children,
 }: {
   step: number;
@@ -715,21 +726,27 @@ function StepSection({
   subtitle: string;
   muted?: boolean;
   active?: boolean;
+  complete?: boolean;
   children: React.ReactNode;
 }) {
   return (
-    <section className={`space-y-4 transition ${muted ? "opacity-70" : ""}`}>
-      <div className="flex items-start gap-3">
+    <section
+      className={`space-y-4 border-l-4 pl-4 transition ${
+        active || complete ? "border-[color:var(--brand)]" : "border-zinc-200"
+      } ${muted ? "opacity-70" : ""}`}
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start gap-3">
         <span
           className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold transition ${
-            active ? "shadow-[0_12px_28px_var(--brand-shadow)]" : ""
+            active || complete ? "shadow-[0_12px_28px_var(--brand-shadow)]" : ""
           }`}
           style={{
-            backgroundColor: muted ? "#f4f4f5" : "var(--brand)",
-            color: muted ? "#a1a1aa" : "var(--brand-foreground)",
+            backgroundColor: muted ? "#f4f4f5" : complete ? "var(--brand-soft)" : "var(--brand)",
+            color: muted ? "#a1a1aa" : complete ? "var(--brand-strong)" : "var(--brand-foreground)",
           }}
         >
-          {step}
+          {complete ? "✓" : step}
         </span>
         <div>
           <h3 className={`text-base font-semibold ${muted ? "text-zinc-400" : "text-zinc-950"}`}>
@@ -737,16 +754,23 @@ function StepSection({
           </h3>
           <p className="mt-1 text-sm text-zinc-500">{subtitle}</p>
         </div>
+        </div>
+        {complete && (
+          <span className="rounded-full bg-[color:var(--brand-soft)] px-2.5 py-1 text-xs font-semibold text-[color:var(--brand-strong)]">
+            Listo
+          </span>
+        )}
       </div>
       <div className={active ? "animate-step-reveal" : ""}>{children}</div>
     </section>
   );
 }
 
-function EmptyStep({ children }: { children: React.ReactNode }) {
+function EmptyStep({ title, children }: { title?: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-lg border border-dashed border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-500">
-      {children}
+    <div className="rounded-lg border border-dashed border-[color:var(--brand-border)] bg-[color:var(--brand-soft)] p-4 text-sm">
+      {title && <p className="font-semibold text-zinc-900">{title}</p>}
+      <p className={title ? "mt-1 text-zinc-600" : "text-zinc-600"}>{children}</p>
     </div>
   );
 }

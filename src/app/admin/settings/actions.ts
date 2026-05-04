@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { TENANT_TITLE_FONT_VALUES } from "@/lib/tenant-fonts";
 
 const MAX_LOGO_BYTES = 300 * 1024; // ~300KB después de base64 (algo más que el límite cliente para tolerancia)
 
@@ -22,6 +23,7 @@ const settingsSchema = z.object({
   name: z.string().min(2).max(80),
   description: z.string().max(500).optional().nullable(),
   primaryColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional().nullable(),
+  titleFont: z.enum(TENANT_TITLE_FONT_VALUES),
   depositPct: z.coerce.number().int().min(0).max(100),
   logoUrl: logoSchema,
 });
@@ -35,6 +37,7 @@ export async function updateSettings(formData: FormData) {
     name: formData.get("name"),
     description: formData.get("description") || null,
     primaryColor: formData.get("primaryColor") || null,
+    titleFont: formData.get("titleFont") || "system",
     depositPct: formData.get("depositPct") ?? 30,
     logoUrl: formData.get("logoUrl") || null,
   });
@@ -45,6 +48,7 @@ export async function updateSettings(formData: FormData) {
       name: data.name,
       description: data.description ?? null,
       primaryColor: data.primaryColor ?? null,
+      titleFont: data.titleFont,
       depositPct: data.depositPct,
       logoUrl: data.logoUrl || null,
     },

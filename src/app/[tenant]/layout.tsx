@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { CSSProperties } from "react";
 import { getTenantBySlug, isReservedSlug } from "@/lib/tenant";
+import { TENANT_TITLE_FONTS, normalizeTenantTitleFont } from "@/lib/tenant-fonts";
 
 const DEFAULT_BRAND = "#0ea5e9";
 const WHITE = { r: 255, g: 255, b: 255 };
@@ -142,6 +143,8 @@ export default async function TenantLayout({
   if (!tenant?.active) notFound();
 
   const palette = buildBrandPalette(tenant.primaryColor);
+  const titleFont = normalizeTenantTitleFont((tenant as { titleFont?: string | null }).titleFont);
+  const titleFontStack = TENANT_TITLE_FONTS[titleFont].stack;
   const wrapperStyle: CSSProperties = {
     ["--brand" as string]: palette.brand,
     ["--brand-foreground" as string]: palette.foreground,
@@ -156,39 +159,66 @@ export default async function TenantLayout({
     ["--brand-on-dark" as string]: palette.onDark,
     ["--brand-ring" as string]: palette.ring,
     ["--brand-shadow" as string]: palette.shadow,
-    background: `linear-gradient(180deg, ${palette.soft} 0%, #ffffff 340px)`,
+    background: `linear-gradient(180deg, ${palette.softStrong} 0%, ${palette.soft} 260px, #ffffff 560px)`,
   };
 
   return (
     <div style={wrapperStyle} className="min-h-screen text-zinc-900">
-      <header className="border-b border-white/70">
-        <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-6 sm:px-6">
-          {tenant.logoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element -- soportamos data URIs sin pasar por next/image
-            <img
-              src={tenant.logoUrl}
-              alt={tenant.name}
-              className="h-16 w-16 rounded-lg border border-white/70 object-cover shadow-sm"
-            />
-          ) : (
-            <div
-              className="flex h-16 w-16 items-center justify-center rounded-lg shadow-sm"
+      <header
+        className="relative overflow-hidden border-b border-[color:var(--brand-border)] bg-white"
+      >
+        <div className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)_8rem] sm:grid-cols-[minmax(0,1fr)_12rem] md:grid-cols-[minmax(0,1fr)_15rem]">
+          <div
+            className="min-w-0 px-4 py-8 sm:px-6 sm:py-10"
+            style={{
+              backgroundImage:
+                "linear-gradient(90deg, var(--brand) 0%, var(--brand-soft) 72%, #ffffff 100%)",
+            }}
+          >
+            <p
+              className="text-xs font-semibold uppercase"
+              style={{ color: "var(--brand-foreground)" }}
+            >
+              Reserva online
+            </p>
+            <Link
+              href={`/${tenant.slug}`}
+              className="mt-1 block text-3xl font-semibold tracking-normal sm:text-5xl"
               style={{
-                backgroundColor: palette.brand,
-                color: palette.foreground,
+                color: "var(--brand-foreground)",
+                fontFamily: titleFontStack,
               }}
             >
-              <span className="text-2xl font-semibold">
-                {tenant.name.slice(0, 1).toUpperCase()}
-              </span>
-            </div>
-          )}
-          <div className="flex-1">
-            <Link href={`/${tenant.slug}`} className="text-2xl font-semibold text-zinc-950">
               {tenant.name}
             </Link>
             {tenant.description && (
-              <p className="mt-1 max-w-2xl text-sm leading-6 text-zinc-600">{tenant.description}</p>
+              <p
+                className="mt-3 max-w-2xl text-sm leading-6 sm:text-base"
+                style={{ color: "var(--brand-foreground)", opacity: 0.82 }}
+              >
+                {tenant.description}
+              </p>
+            )}
+          </div>
+
+          <div className="flex items-start justify-end bg-white px-4 py-8 sm:px-6 sm:py-10">
+            {tenant.logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element -- soportamos data URIs sin pasar por next/image
+              <img
+                src={tenant.logoUrl}
+                alt={tenant.name}
+                className="max-h-20 max-w-full object-contain sm:max-h-28"
+              />
+            ) : (
+              <span
+                className="text-6xl font-semibold leading-none"
+                style={{
+                  color: "var(--brand)",
+                  fontFamily: titleFontStack,
+                }}
+              >
+                {tenant.name.slice(0, 1).toUpperCase()}
+              </span>
             )}
           </div>
         </div>
