@@ -2,6 +2,11 @@ import Link from "next/link";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { deleteStaff } from "./actions";
+import { PageHeader } from "../_components/PageHeader";
+import { EmptyState } from "../_components/EmptyState";
+import { Avatar } from "../_components/Avatar";
+import { ConfirmDeleteForm } from "../_components/ConfirmDeleteForm";
+import { PlusIcon, UsersIcon } from "../_components/AdminIcons";
 
 export default async function StaffPage() {
   const session = await auth();
@@ -13,46 +18,56 @@ export default async function StaffPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-semibold">Personal</h1>
-        <Link
-          href="/admin/staff/new"
-          className="rounded-md bg-zinc-900 px-4 py-2 text-sm text-white dark:bg-white dark:text-zinc-900"
-        >
-          Agregar
-        </Link>
-      </div>
+      <PageHeader
+        title="Personal"
+        description="Las personas que atienden. Cada una tiene su horario y servicios."
+        actions={[
+          {
+            kind: "primary",
+            label: "Agregar",
+            href: "/admin/staff/new",
+            icon: <PlusIcon />,
+          },
+        ]}
+      />
       <div className="rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
         {staff.length === 0 ? (
-          <p className="p-6 text-sm text-zinc-500">
-            Cargá a las personas que atienden para que los clientes elijan con quién atenderse.
-          </p>
+          <EmptyState
+            icon={<UsersIcon className="h-6 w-6" />}
+            title="Todavía no agregaste personal"
+            description="Cargá a las personas que atienden para que los clientes elijan con quién atenderse."
+            action={{ label: "Agregar primera persona", href: "/admin/staff/new" }}
+          />
         ) : (
-          <ul className="divide-y divide-zinc-200 dark:divide-zinc-800">
+          <ul className="divide-y divide-zinc-100 dark:divide-zinc-800">
             {staff.map((s) => (
-              <li key={s.id} className="flex items-center justify-between p-4">
-                <div>
-                  <p className="font-medium">{s.name}</p>
-                  <p className="text-sm text-zinc-500">
-                    {s.email ?? "—"}
-                    {!s.active ? " · inactivo" : ""}
-                  </p>
+              <li
+                key={s.id}
+                className="flex flex-wrap items-center gap-4 px-5 py-4 transition hover:bg-zinc-50/60 dark:hover:bg-zinc-800/30"
+              >
+                <Avatar name={s.name} size="md" />
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-medium">{s.name}</p>
+                    {!s.active && (
+                      <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-zinc-500 dark:bg-zinc-800">
+                        Inactivo
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-0.5 text-xs text-zinc-500">{s.email ?? "—"}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <Link
                     href={`/admin/staff/${s.id}`}
-                    className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                    className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm transition hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
                   >
                     Editar
                   </Link>
-                  <form action={deleteStaff.bind(null, s.id)}>
-                    <button
-                      type="submit"
-                      className="rounded-md border border-red-300 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 dark:border-red-900 dark:hover:bg-red-950"
-                    >
-                      Borrar
-                    </button>
-                  </form>
+                  <ConfirmDeleteForm
+                    action={deleteStaff.bind(null, s.id)}
+                    message={`¿Borrar a "${s.name}"? Sus turnos se mantendrán pero no podrá tomar nuevos.`}
+                  />
                 </div>
               </li>
             ))}

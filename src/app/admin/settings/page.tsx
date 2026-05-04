@@ -8,6 +8,9 @@ import {
 } from "./actions";
 import { LogoUpload } from "./LogoUpload";
 import { MercadoPagoForm } from "./MercadoPagoForm";
+import { PageHeader } from "../_components/PageHeader";
+import { ColorPicker } from "../_components/ColorPicker";
+import { CheckIcon } from "../_components/AdminIcons";
 
 const MP_BANNERS: Record<string, { tone: "ok" | "err"; text: string }> = {
   connected: { tone: "ok", text: "Mercado Pago conectado correctamente." },
@@ -49,151 +52,250 @@ export default async function SettingsPage({
   const isConnected = !!tenant.mpAccessToken;
 
   return (
-    <div className="max-w-2xl space-y-10">
+    <div className="max-w-3xl space-y-8">
+      <PageHeader
+        title="Configuración"
+        description="Personalizá tu turnera y conectá tu cuenta de Mercado Pago."
+      />
+
       {banner && (
         <div
-          className={`rounded-md border p-3 text-sm ${
+          className={`flex items-start gap-3 rounded-xl border px-4 py-3 text-sm ${
             banner.tone === "ok"
-              ? "border-emerald-300 bg-emerald-50 text-emerald-800"
-              : "border-red-300 bg-red-50 text-red-700"
+              ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300"
+              : "border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
           }`}
         >
-          {banner.text}
+          <span
+            className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
+              banner.tone === "ok" ? "bg-emerald-500 text-white" : "bg-red-500 text-white"
+            }`}
+          >
+            {banner.tone === "ok" ? (
+              <CheckIcon className="h-3 w-3" />
+            ) : (
+              <span className="text-xs font-bold">!</span>
+            )}
+          </span>
+          <p>{banner.text}</p>
         </div>
       )}
 
-      <div>
-        <h1 className="text-2xl font-semibold mb-6">Configuración</h1>
-        <form action={updateSettings} className="space-y-4 rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+      {/* Datos del negocio */}
+      <Section
+        title="Datos del negocio"
+        description="Aparecen en la página pública donde tus clientes reservan."
+      >
+        <form action={updateSettings} className="space-y-5">
           <Field label="Nombre del negocio">
             <input
               name="name"
               required
               defaultValue={tenant.name}
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-800"
+              className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm transition focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20 dark:border-zinc-700 dark:bg-zinc-950"
             />
           </Field>
-          <Field label="Descripción">
+          <Field label="Descripción" hint="Una línea corta que aparece debajo del nombre.">
             <textarea
               name="description"
               rows={2}
               defaultValue={tenant.description ?? ""}
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-800"
+              className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm transition focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20 dark:border-zinc-700 dark:bg-zinc-950"
             />
           </Field>
-          <LogoUpload defaultValue={tenant.logoUrl} />
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Color principal">
-              <input
-                name="primaryColor"
-                type="color"
-                defaultValue={tenant.primaryColor ?? "#0ea5e9"}
-                className="h-10 w-full rounded-md border border-zinc-300 dark:border-zinc-700"
-              />
-            </Field>
-            <Field label="% de seña por defecto">
+          <Field label="Logo">
+            <LogoUpload defaultValue={tenant.logoUrl} />
+          </Field>
+          <Field label="Color principal" hint="Acento que se aplica a botones y chips de tu turnera.">
+            <ColorPicker name="primaryColor" defaultValue={tenant.primaryColor} />
+          </Field>
+          <Field
+            label="% de seña por defecto"
+            hint="Podés sobrescribirlo por servicio."
+          >
+            <div className="relative w-32">
               <input
                 name="depositPct"
                 type="number"
                 min={0}
                 max={100}
                 defaultValue={tenant.depositPct}
-                className="w-full rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-800"
+                className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 pr-7 text-sm shadow-sm transition focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20 dark:border-zinc-700 dark:bg-zinc-950"
               />
-            </Field>
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-zinc-500">
+                %
+              </span>
+            </div>
+          </Field>
+
+          <div className="rounded-lg border border-dashed border-zinc-300 bg-zinc-50 p-3 dark:border-zinc-700 dark:bg-zinc-950">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
+              URL pública
+            </p>
+            <p className="mt-1 font-mono text-sm">turnoexpress.com/{tenant.slug}</p>
           </div>
 
-          <div>
-            <p className="text-xs uppercase tracking-wider text-zinc-500">URL pública</p>
-            <p className="mt-1 font-mono text-sm">/{tenant.slug}</p>
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              className="inline-flex items-center gap-1.5 rounded-md bg-gradient-to-r from-sky-500 to-emerald-500 px-4 py-2 text-sm font-medium text-white shadow-sm shadow-sky-500/25 transition hover:shadow-md hover:shadow-sky-500/40"
+            >
+              <CheckIcon className="h-4 w-4" />
+              Guardar cambios
+            </button>
           </div>
-          <button
-            type="submit"
-            className="rounded-md bg-zinc-900 px-4 py-2 text-sm text-white hover:bg-zinc-700 dark:bg-white dark:text-zinc-900"
-          >
-            Guardar cambios
-          </button>
         </form>
-      </div>
+      </Section>
 
-      <div>
-        <h2 className="text-lg font-semibold mb-3">Mercado Pago</h2>
-        <p className="mb-3 text-sm text-zinc-500">
-          Cada negocio cobra a su propia cuenta de Mercado Pago. Conectalo por OAuth
-          (recomendado) o pegando tus credenciales.
-        </p>
-        <div className="space-y-4 rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
-          {isConnected ? (
-            <div className="space-y-2">
-              <p className="font-medium text-emerald-600">Cuenta conectada</p>
-              <p className="text-xs text-zinc-500">
-                Token: <span className="font-mono">{maskToken(tenant.mpAccessToken!)}</span>
-                {tenant.mpAccessToken!.startsWith("TEST-") && " · modo sandbox"}
-                {tenant.mpPublicKey ? " · public key configurada" : " · sin public key"}
-              </p>
-              <div className="flex flex-wrap gap-2 pt-2">
-                <form action={verifyMpCredentials}>
-                  <button
-                    type="submit"
-                    className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
-                  >
-                    Probar conexión
-                  </button>
-                </form>
-                <form action={disconnectMercadoPago}>
-                  <button
-                    type="submit"
-                    className="rounded-md border border-red-300 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 dark:border-red-900 dark:hover:bg-red-950"
-                  >
-                    Desconectar
-                  </button>
-                </form>
+      {/* Mercado Pago */}
+      <Section
+        title="Mercado Pago"
+        description="Cada negocio cobra a su propia cuenta. La seña va directo a tu MP, sin pasar por nosotros."
+        icon={<MpIcon />}
+      >
+        {isConnected ? (
+          <div className="space-y-4">
+            <div className="flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900 dark:bg-emerald-950/40">
+              <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">
+                <CheckIcon className="h-4 w-4" />
+              </span>
+              <div className="flex-1">
+                <p className="font-medium text-emerald-900 dark:text-emerald-200">
+                  Cuenta conectada
+                </p>
+                <p className="mt-1 text-xs text-emerald-700 dark:text-emerald-300">
+                  Token: <span className="font-mono">{maskToken(tenant.mpAccessToken!)}</span>
+                  {tenant.mpAccessToken!.startsWith("TEST-") && (
+                    <span className="ml-2 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
+                      Sandbox
+                    </span>
+                  )}
+                </p>
+                <p className="mt-0.5 text-xs text-emerald-700 dark:text-emerald-300">
+                  {tenant.mpPublicKey ? "Public key configurada" : "Sin public key"}
+                </p>
               </div>
             </div>
-          ) : (
-            <div className="space-y-3">
-              {oauthConfigured ? (
-                <div>
-                  {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- navega a un route handler que redirige a Mercado Pago */}
-                  <a
-                    href="/api/mercadopago/oauth/connect"
-                    className="inline-block rounded-md bg-[#009ee3] px-4 py-2 text-sm font-medium text-white hover:bg-[#0086c4]"
-                  >
-                    Conectar con Mercado Pago (OAuth)
-                  </a>
-                </div>
-              ) : (
-                <p className="text-xs text-zinc-500">
-                  OAuth no está habilitado en el servidor. Configurá{" "}
-                  <code>MP_OAUTH_CLIENT_ID</code> y <code>MP_OAUTH_CLIENT_SECRET</code> para
-                  habilitarlo, o usá la entrada manual de abajo.
+            <div className="flex flex-wrap gap-2">
+              <form action={verifyMpCredentials}>
+                <button
+                  type="submit"
+                  className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm transition hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                >
+                  Probar conexión
+                </button>
+              </form>
+              <form action={disconnectMercadoPago}>
+                <button
+                  type="submit"
+                  className="rounded-md border border-red-300 px-3 py-1.5 text-sm text-red-600 transition hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/40"
+                >
+                  Desconectar
+                </button>
+              </form>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {oauthConfigured ? (
+              <div>
+                {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- navega a un route handler que redirige a Mercado Pago */}
+                <a
+                  href="/api/mercadopago/oauth/connect"
+                  className="inline-flex items-center gap-2 rounded-md bg-[#009ee3] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0086c4]"
+                >
+                  <MpIcon className="h-4 w-4" />
+                  Conectar con Mercado Pago
+                </a>
+                <p className="mt-2 text-xs text-zinc-500">
+                  Te lleva al login de Mercado Pago y volvés acá automáticamente.
                 </p>
-              )}
-            </div>
-          )}
+              </div>
+            ) : (
+              <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
+                OAuth no está habilitado en el servidor. Configurá{" "}
+                <code className="rounded bg-amber-100 px-1 dark:bg-amber-950">MP_OAUTH_CLIENT_ID</code> y{" "}
+                <code className="rounded bg-amber-100 px-1 dark:bg-amber-950">MP_OAUTH_CLIENT_SECRET</code>{" "}
+                para habilitarlo, o usá la entrada manual de abajo.
+              </div>
+            )}
+          </div>
+        )}
 
-          <details className="border-t border-zinc-200 pt-4 dark:border-zinc-800" open={!isConnected}>
-            <summary className="cursor-pointer text-sm font-medium">
-              {isConnected ? "Reemplazar credenciales manualmente" : "Conectar manualmente"}
-            </summary>
-            <div className="mt-3">
-              <MercadoPagoForm
-                action={updateMpCredentials}
-                hasPublicKey={!!tenant.mpPublicKey}
-              />
-            </div>
-          </details>
-        </div>
-      </div>
+        <details
+          className="mt-5 rounded-lg border border-zinc-200 dark:border-zinc-800"
+          open={!isConnected}
+        >
+          <summary className="cursor-pointer px-4 py-3 text-sm font-medium hover:bg-zinc-50 dark:hover:bg-zinc-800/40">
+            {isConnected ? "Reemplazar credenciales manualmente" : "Conectar manualmente"}
+          </summary>
+          <div className="border-t border-zinc-200 p-4 dark:border-zinc-800">
+            <MercadoPagoForm
+              action={updateMpCredentials}
+              hasPublicKey={!!tenant.mpPublicKey}
+            />
+          </div>
+        </details>
+      </Section>
     </div>
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Section({
+  title,
+  description,
+  icon,
+  children,
+}: {
+  title: string;
+  description?: string;
+  icon?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="border-b border-zinc-200 px-6 py-4 dark:border-zinc-800">
+        <div className="flex items-start gap-3">
+          {icon && (
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-sky-100 to-emerald-100 text-sky-600 dark:from-sky-950/60 dark:to-emerald-950/60 dark:text-sky-300">
+              {icon}
+            </span>
+          )}
+          <div>
+            <h2 className="text-base font-semibold">{title}</h2>
+            {description && (
+              <p className="mt-0.5 text-sm text-zinc-500">{description}</p>
+            )}
+          </div>
+        </div>
+      </div>
+      <div className="p-6">{children}</div>
+    </section>
+  );
+}
+
+function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
   return (
     <label className="block text-sm">
-      <span className="mb-1 block">{label}</span>
+      <span className="mb-1.5 block font-medium">{label}</span>
       {children}
+      {hint && <span className="mt-1 block text-xs text-zinc-500">{hint}</span>}
     </label>
+  );
+}
+
+function MpIcon({ className = "h-5 w-5" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
+      <path d="M3 8.5C3 6.5 5 5 7.5 5h9C19 5 21 6.5 21 8.5v7c0 2-2 3.5-4.5 3.5h-9C5 19 3 17.5 3 15.5v-7zm10.5 6c2.2 0 4-1.5 4-3.5s-1.8-3.5-4-3.5-4 1.5-4 3.5 1.8 3.5 4 3.5z" />
+    </svg>
   );
 }

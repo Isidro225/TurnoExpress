@@ -10,6 +10,16 @@ import {
 import { es } from "date-fns/locale";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { PageHeader } from "../_components/PageHeader";
+import { EmptyState } from "../_components/EmptyState";
+import { NowLine } from "../_components/NowLine";
+import {
+  CalendarIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  CreditCardIcon,
+  ClockIcon,
+} from "../_components/AdminIcons";
 
 const HOUR_HEIGHT = 48;
 const START_HOUR = 7;
@@ -17,11 +27,23 @@ const END_HOUR = 23;
 const TOTAL_HOURS = END_HOUR - START_HOUR;
 const DAY_HEIGHT = TOTAL_HOURS * HOUR_HEIGHT;
 
-const STATUS_STYLES: Record<string, string> = {
-  CONFIRMED: "bg-emerald-100 border-emerald-400 text-emerald-900",
-  PENDING_PAYMENT: "bg-amber-100 border-amber-400 text-amber-900",
-  COMPLETED: "bg-zinc-200 border-zinc-400 text-zinc-700",
-  NO_SHOW: "bg-red-100 border-red-400 text-red-900",
+const STATUS_STYLES: Record<string, { box: string; bar: string }> = {
+  CONFIRMED: {
+    box: "bg-emerald-50 text-emerald-900 hover:bg-emerald-100 dark:bg-emerald-950/50 dark:text-emerald-100",
+    bar: "border-emerald-500",
+  },
+  PENDING_PAYMENT: {
+    box: "bg-amber-50 text-amber-900 hover:bg-amber-100 dark:bg-amber-950/50 dark:text-amber-100",
+    bar: "border-amber-500",
+  },
+  COMPLETED: {
+    box: "bg-zinc-100 text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-800/60 dark:text-zinc-300",
+    bar: "border-zinc-400",
+  },
+  NO_SHOW: {
+    box: "bg-red-50 text-red-900 hover:bg-red-100 dark:bg-red-950/50 dark:text-red-100",
+    bar: "border-red-500",
+  },
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -78,7 +100,7 @@ export default async function CalendarPage({
       ...(sp.staff ? { staffId: sp.staff } : {}),
     },
     orderBy: { startsAt: "asc" },
-    include: { service: true, staff: true },
+    include: { service: true, staff: true, payments: true },
   });
 
   const buildHref = (overrides: { date?: Date; staff?: string | null }) => {
@@ -93,16 +115,47 @@ export default async function CalendarPage({
   };
 
   const dayAppts = appointments.filter((a) => isSameDay(a.startsAt, cursor));
+  const today = new Date();
+  const cursorIsToday = isSameDay(cursor, today);
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold">Calendario</h1>
+    <div className="space-y-5">
+      <PageHeader
+        title="Calendario"
+        description={`Semana del ${format(weekStart, "d MMM", { locale: es })} al ${format(weekEnd, "d MMM yyyy", { locale: es })}`}
+      />
+
+      {/* Toolbar */}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900">
+        {/* Pill nav */}
+        <div className="inline-flex overflow-hidden rounded-md border border-zinc-200 dark:border-zinc-700">
+          <Link
+            href={buildHref({ date: addDays(weekStart, -7) })}
+            className="flex items-center px-2.5 py-1.5 text-sm text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+            aria-label="Semana anterior"
+          >
+            <ChevronLeftIcon />
+          </Link>
+          <Link
+            href={buildHref({ date: new Date() })}
+            className="border-x border-zinc-200 px-3 py-1.5 text-sm font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+          >
+            Hoy
+          </Link>
+          <Link
+            href={buildHref({ date: addDays(weekStart, 7) })}
+            className="flex items-center px-2.5 py-1.5 text-sm text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+            aria-label="Semana siguiente"
+          >
+            <ChevronRightIcon />
+          </Link>
+        </div>
+
         <form className="flex items-center gap-2">
           <select
             name="staff"
             defaultValue={sp.staff ?? ""}
-            className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+            className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-950"
           >
             <option value="">Todos los profesionales</option>
             {staff.map((s) => (
@@ -121,97 +174,79 @@ export default async function CalendarPage({
         </form>
       </div>
 
-      {/* Navegación: semana en desktop, día en mobile */}
-      <div className="hidden items-center justify-between md:flex">
-        <p className="text-sm text-zinc-500">
-          Semana del {format(weekStart, "d MMM", { locale: es })} al{" "}
-          {format(weekEnd, "d MMM yyyy", { locale: es })}
-        </p>
-        <div className="flex items-center gap-1">
-          <Link
-            href={buildHref({ date: addDays(weekStart, -7) })}
-            className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
-            aria-label="Semana anterior"
-          >
-            ‹
-          </Link>
-          <Link
-            href={buildHref({ date: new Date() })}
-            className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
-          >
-            Hoy
-          </Link>
-          <Link
-            href={buildHref({ date: addDays(weekStart, 7) })}
-            className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
-            aria-label="Semana siguiente"
-          >
-            ›
-          </Link>
-        </div>
-      </div>
-
-      <div className="flex items-center justify-between md:hidden">
-        <p className="text-sm font-medium">
-          {format(cursor, "EEEE d 'de' MMMM", { locale: es })}
-        </p>
-        <div className="flex items-center gap-1">
-          <Link
-            href={buildHref({ date: addDays(cursor, -1) })}
-            className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
-            aria-label="Día anterior"
-          >
-            ‹
-          </Link>
-          <Link
-            href={buildHref({ date: new Date() })}
-            className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
-          >
-            Hoy
-          </Link>
-          <Link
-            href={buildHref({ date: addDays(cursor, 1) })}
-            className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
-            aria-label="Día siguiente"
-          >
-            ›
-          </Link>
-        </div>
-      </div>
-
-      {/* Vista mobile: lista del día */}
+      {/* Vista mobile: día */}
       <div className="md:hidden">
+        <div className="mb-3 flex items-center justify-between">
+          <p className="text-sm font-semibold">
+            {format(cursor, "EEEE d 'de' MMMM", { locale: es })}
+          </p>
+          <div className="inline-flex overflow-hidden rounded-md border border-zinc-200 dark:border-zinc-700">
+            <Link
+              href={buildHref({ date: addDays(cursor, -1) })}
+              className="px-2.5 py-1.5 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800"
+              aria-label="Día anterior"
+            >
+              <ChevronLeftIcon />
+            </Link>
+            <Link
+              href={buildHref({ date: addDays(cursor, 1) })}
+              className="border-l border-zinc-200 px-2.5 py-1.5 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+              aria-label="Día siguiente"
+            >
+              <ChevronRightIcon />
+            </Link>
+          </div>
+        </div>
         <div className="rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
           {dayAppts.length === 0 ? (
-            <p className="p-6 text-center text-sm text-zinc-500">
-              No hay turnos para este día.
-            </p>
+            <EmptyState
+              icon={<CalendarIcon className="h-6 w-6" />}
+              title="No hay turnos para este día"
+              description="Aprovechá para cargar bloqueos o avisar disponibilidad en redes."
+            />
           ) : (
-            <ul className="divide-y divide-zinc-200 dark:divide-zinc-800">
+            <ul className="divide-y divide-zinc-100 dark:divide-zinc-800">
               {dayAppts.map((a) => {
-                const cls = STATUS_STYLES[a.status] ?? "bg-zinc-100 border-zinc-400";
+                const cfg = STATUS_STYLES[a.status] ?? {
+                  box: "bg-zinc-50 text-zinc-700",
+                  bar: "border-zinc-400",
+                };
+                const paid = a.payments.some((p) => p.status === "APPROVED");
                 return (
                   <li key={a.id}>
                     <Link
                       href={`/admin/appointments/${a.id}`}
-                      className="flex items-stretch gap-3 p-3 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+                      className="flex items-stretch gap-3 p-3 transition hover:bg-zinc-50 dark:hover:bg-zinc-800/40"
                     >
                       <div className="flex w-16 shrink-0 flex-col items-center justify-center rounded-md bg-zinc-50 text-center dark:bg-zinc-800">
-                        <span className="text-base font-semibold">
+                        <span className="text-base font-bold">
                           {format(a.startsAt, "HH:mm")}
                         </span>
                         <span className="text-[10px] text-zinc-500">
                           {a.service.durationMin} min
                         </span>
                       </div>
-                      <div className={`flex-1 rounded-md border-l-4 px-3 py-2 ${cls}`}>
+                      <div className={`flex-1 rounded-md border-l-4 px-3 py-2 ${cfg.bar} ${cfg.box}`}>
                         <p className="font-medium">{a.customerName}</p>
                         <p className="text-sm">
                           {a.service.name} · {a.staff.name}
                         </p>
-                        <p className="mt-0.5 text-[11px] uppercase tracking-wider opacity-70">
-                          {STATUS_LABEL[a.status] ?? a.status}
-                        </p>
+                        <div className="mt-1 flex items-center gap-2">
+                          <span className="text-[11px] uppercase tracking-wider opacity-70">
+                            {STATUS_LABEL[a.status] ?? a.status}
+                          </span>
+                          {paid ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] text-emerald-700 dark:text-emerald-300">
+                              <CreditCardIcon className="h-3 w-3" />
+                              seña pagada
+                            </span>
+                          ) : a.status === "PENDING_PAYMENT" ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] text-amber-700 dark:text-amber-300">
+                              <ClockIcon className="h-3 w-3" />
+                              pendiente
+                            </span>
+                          ) : null}
+                        </div>
                       </div>
                     </Link>
                   </li>
@@ -222,27 +257,37 @@ export default async function CalendarPage({
         </div>
       </div>
 
-      {/* Vista desktop: grid semanal */}
+      {/* Vista desktop: semana */}
       <div className="hidden overflow-x-auto rounded-xl border border-zinc-200 bg-white md:block dark:border-zinc-800 dark:bg-zinc-900">
         <div className="grid min-w-[900px] grid-cols-[4rem_repeat(7,minmax(0,1fr))]">
+          {/* Header: corner + days */}
           <div className="border-b border-r border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950" />
           {days.map((d) => {
-            const isToday = isSameDay(d, new Date());
+            const isToday = isSameDay(d, today);
             return (
               <div
                 key={d.toISOString()}
-                className={`border-b border-r border-zinc-200 p-2 text-center text-sm dark:border-zinc-800 ${
-                  isToday ? "bg-zinc-100 font-semibold dark:bg-zinc-800" : "bg-zinc-50 dark:bg-zinc-950"
+                className={`border-b border-r border-zinc-200 px-2 py-2.5 text-center text-sm dark:border-zinc-800 ${
+                  isToday ? "bg-sky-50/50 dark:bg-sky-950/20" : "bg-zinc-50 dark:bg-zinc-950"
                 }`}
               >
-                <div className="text-xs uppercase tracking-wider text-zinc-500">
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
                   {format(d, "EEE", { locale: es })}
                 </div>
-                <div>{format(d, "d MMM", { locale: es })}</div>
+                <div className="mt-0.5 flex items-center justify-center">
+                  {isToday ? (
+                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-sky-500 text-sm font-bold text-white shadow-sm shadow-sky-500/30">
+                      {format(d, "d")}
+                    </span>
+                  ) : (
+                    <span className="text-sm font-medium">{format(d, "d MMM", { locale: es })}</span>
+                  )}
+                </div>
               </div>
             );
           })}
 
+          {/* Hours column */}
           <div className="relative border-r border-zinc-200 dark:border-zinc-800" style={{ height: DAY_HEIGHT }}>
             {Array.from({ length: TOTAL_HOURS + 1 }, (_, i) => (
               <div
@@ -255,14 +300,19 @@ export default async function CalendarPage({
             ))}
           </div>
 
+          {/* Day columns */}
           {days.map((d) => {
             const colAppts = appointments.filter((a) => isSameDay(a.startsAt, d));
+            const isToday = isSameDay(d, today);
             return (
               <div
                 key={`col-${d.toISOString()}`}
-                className="relative border-r border-zinc-200 dark:border-zinc-800"
+                className={`group/col relative border-r border-zinc-200 transition hover:bg-sky-50/30 dark:border-zinc-800 dark:hover:bg-sky-950/10 ${
+                  isToday ? "bg-sky-50/20 dark:bg-sky-950/10" : ""
+                }`}
                 style={{ height: DAY_HEIGHT }}
               >
+                {/* Hour grid lines */}
                 {Array.from({ length: TOTAL_HOURS }, (_, i) => (
                   <div
                     key={i}
@@ -270,26 +320,48 @@ export default async function CalendarPage({
                     style={{ top: (i + 1) * HOUR_HEIGHT - 1, height: 1 }}
                   />
                 ))}
+
+                {/* Now line: solo en la columna de hoy */}
+                {isToday && (
+                  <NowLine
+                    startHour={START_HOUR}
+                    endHour={END_HOUR}
+                    hourHeight={HOUR_HEIGHT}
+                  />
+                )}
+
                 {colAppts.map((a) => {
                   const startMin = Math.max(0, minutesFromStart(a.startsAt));
                   const endMin = Math.min(TOTAL_HOURS * 60, minutesFromStart(a.endsAt));
                   const top = (startMin / 60) * HOUR_HEIGHT;
                   const height = Math.max(20, ((endMin - startMin) / 60) * HOUR_HEIGHT - 2);
-                  const cls = STATUS_STYLES[a.status] ?? "bg-zinc-100 border-zinc-400";
+                  const cfg = STATUS_STYLES[a.status] ?? {
+                    box: "bg-zinc-50 text-zinc-700",
+                    bar: "border-zinc-400",
+                  };
+                  const paid = a.payments.some((p) => p.status === "APPROVED");
                   return (
                     <Link
                       key={a.id}
                       href={`/admin/appointments/${a.id}`}
                       title={`${a.customerName} · ${a.service.name} · ${a.staff.name} · ${a.status}`}
-                      className={`absolute left-1 right-1 overflow-hidden rounded-md border-l-4 px-1.5 py-1 text-[11px] leading-tight transition hover:brightness-95 ${cls}`}
+                      className={`absolute left-1 right-1 z-10 overflow-hidden rounded-md border-l-4 px-1.5 py-1 text-[11px] leading-tight shadow-sm transition ${cfg.box} ${cfg.bar}`}
                       style={{ top, height }}
                     >
-                      <div className="font-medium">
-                        {format(a.startsAt, "HH:mm")} {a.customerName}
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="font-semibold">{format(a.startsAt, "HH:mm")}</span>
+                        {paid ? (
+                          <CreditCardIcon className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+                        ) : a.status === "PENDING_PAYMENT" ? (
+                          <ClockIcon className="h-3 w-3 text-amber-600 dark:text-amber-400" />
+                        ) : null}
                       </div>
-                      <div className="truncate">
-                        {a.service.name} · {a.staff.name}
-                      </div>
+                      <div className="truncate font-medium">{a.customerName}</div>
+                      {height > 36 && (
+                        <div className="truncate text-[10px] opacity-80">
+                          {a.service.name} · {a.staff.name}
+                        </div>
+                      )}
                     </Link>
                   );
                 })}
@@ -299,20 +371,27 @@ export default async function CalendarPage({
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-3 text-xs text-zinc-500">
-        <Legend className="bg-emerald-100 border-emerald-400" label="Confirmado" />
-        <Legend className="bg-amber-100 border-amber-400" label="Pendiente de pago" />
-        <Legend className="bg-zinc-200 border-zinc-400" label="Completado" />
-        <Legend className="bg-red-100 border-red-400" label="No se presentó" />
+      {/* Legend */}
+      <div className="flex flex-wrap items-center gap-4 text-xs text-zinc-500">
+        <Legend dot="bg-emerald-500" label="Confirmado" />
+        <Legend dot="bg-amber-500" label="Pendiente de pago" />
+        <Legend dot="bg-zinc-400" label="Completado" />
+        <Legend dot="bg-red-500" label="No se presentó" />
+        {cursorIsToday && (
+          <span className="inline-flex items-center gap-1.5 text-sky-600 dark:text-sky-400">
+            <span className="inline-block h-2 w-2 rounded-full bg-sky-500" />
+            <span className="hidden sm:inline">Línea sky:</span> hora actual
+          </span>
+        )}
       </div>
     </div>
   );
 }
 
-function Legend({ className, label }: { className: string; label: string }) {
+function Legend({ dot, label }: { dot: string; label: string }) {
   return (
     <span className="inline-flex items-center gap-1.5">
-      <span className={`inline-block h-3 w-3 rounded border-l-4 ${className}`} />
+      <span className={`inline-block h-2 w-2 rounded-full ${dot}`} />
       {label}
     </span>
   );

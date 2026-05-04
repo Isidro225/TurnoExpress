@@ -844,7 +844,7 @@ const PLANS: Plan[] = [
   {
     name: "Premium",
     tagline: "Para centros, cadenas y operaciones grandes.",
-    price: "$40.000",
+    price: "masajitos y sexo (solo para bomboncita)",
     priceNote: "/mes",
     features: [
       "Profesionales ilimitados",

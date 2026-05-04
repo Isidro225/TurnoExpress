@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
@@ -9,22 +8,9 @@ import {
   setAppointmentStatus,
 } from "../actions";
 import { RescheduleForm } from "./RescheduleForm";
-
-const STATUS_LABEL: Record<string, string> = {
-  PENDING_PAYMENT: "Pendiente de pago",
-  CONFIRMED: "Confirmado",
-  COMPLETED: "Completado",
-  CANCELLED: "Cancelado",
-  NO_SHOW: "No se presentó",
-};
-
-const STATUS_BADGE: Record<string, string> = {
-  PENDING_PAYMENT: "bg-amber-100 text-amber-800 border-amber-300",
-  CONFIRMED: "bg-emerald-100 text-emerald-800 border-emerald-300",
-  COMPLETED: "bg-zinc-200 text-zinc-700 border-zinc-300",
-  CANCELLED: "bg-red-100 text-red-700 border-red-300",
-  NO_SHOW: "bg-red-100 text-red-700 border-red-300",
-};
+import { PageHeader } from "../../_components/PageHeader";
+import { Avatar } from "../../_components/Avatar";
+import { StatusBadge } from "../../_components/StatusBadge";
 
 export default async function AppointmentDetailPage({
   params,
@@ -66,22 +52,17 @@ export default async function AppointmentDetailPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Link
-          href="/admin/appointments"
-          className="text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
-        >
-          ‹ Turnos
-        </Link>
-      </div>
+      <PageHeader
+        title={appointment.customerName}
+        breadcrumbs={[
+          { label: "Turnos", href: "/admin/appointments" },
+          { label: "Detalle", href: "#" },
+        ]}
+      />
 
-      <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-2xl font-semibold">{appointment.customerName}</h1>
-        <span
-          className={`rounded-full border px-2 py-0.5 text-xs ${STATUS_BADGE[appointment.status]}`}
-        >
-          {STATUS_LABEL[appointment.status]}
-        </span>
+      <div className="-mt-4 flex flex-wrap items-center gap-3">
+        <Avatar name={appointment.customerName} size="md" />
+        <StatusBadge status={appointment.status} />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
