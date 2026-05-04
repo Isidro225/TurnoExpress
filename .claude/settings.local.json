@@ -3,7 +3,8 @@
     "allow": [
       "PowerShell(Move-Item -Destination \"c:\\\\Users\\\\isidr\\\\Desktop\\\\TurnoExpress\" -Force)",
       "Bash(tasklist)",
-      "Bash(echo \"EXIT: $?\")"
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(node -e \"const fs=require\\('fs'\\);const b=fs.readFileSync\\('public/logo.png'\\);console.log\\('width:',b.readUInt32BE\\(16\\),'height:',b.readUInt32BE\\(20\\)\\);\")"
     ]
   }
 }

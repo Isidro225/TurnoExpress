@@ -3,6 +3,7 @@ import { z } from "zod";
 import { areIntervalsOverlapping } from "date-fns";
 import { prisma } from "@/lib/prisma";
 import { createDepositPreference } from "@/lib/mercadopago";
+import { isBookingPaymentBypassEnabled } from "@/lib/booking-payment";
 
 const bookSchema = z.object({
   tenantSlug: z.string().min(1),
@@ -37,11 +38,17 @@ export async function POST(req: Request) {
   if (!tenant?.active) {
     return NextResponse.json({ error: "Negocio no disponible" }, { status: 404 });
   }
-  if (!tenant.mpAccessToken) {
-    return NextResponse.json(
-      { error: "Este negocio no tiene Mercado Pago configurado" },
-      { status: 400 }
-    );
+
+  const paymentBypassEnabled = isBookingPaymentBypassEnabled();
+  let mpAccessToken = "";
+  if (!paymentBypassEnabled) {
+    if (!tenant.mpAccessToken) {
+      return NextResponse.json(
+        { error: "Este negocio no tiene Mercado Pago configurado" },
+        { status: 400 }
+      );
+    }
+    mpAccessToken = tenant.mpAccessToken;
   }
 
   const service = await prisma.service.findFirst({
@@ -89,7 +96,11 @@ export async function POST(req: Request) {
   }
 
   const depositPct = service.depositPct ?? tenant.depositPct;
-  const depositCents = Math.max(100, Math.round((service.priceCents * depositPct) / 100));
+  const requiredDepositCents = Math.max(
+    100,
+    Math.round((service.priceCents * depositPct) / 100)
+  );
+  const depositCents = paymentBypassEnabled ? 0 : requiredDepositCents;
 
   const baseUrl =
     process.env.NEXT_PUBLIC_BASE_URL ?? new URL(req.url).origin;
@@ -101,7 +112,7 @@ export async function POST(req: Request) {
       staffId: staffLink.staff.id,
       startsAt,
       endsAt,
-      status: "PENDING_PAYMENT",
+      status: paymentBypassEnabled ? "CONFIRMED" : "PENDING_PAYMENT",
       customerName: parsed.data.customerName,
       customerEmail: parsed.data.customerEmail,
       customerPhone: parsed.data.customerPhone,
@@ -111,11 +122,19 @@ export async function POST(req: Request) {
     },
   });
 
+  if (paymentBypassEnabled) {
+    return NextResponse.json({
+      appointmentId: appointment.id,
+      redirectUrl: `${baseUrl}/${tenant.slug}/book/success?id=${appointment.id}`,
+      paymentBypassed: true,
+    });
+  }
+
   let initPoint: string;
   let preferenceId: string;
   try {
     const pref = await createDepositPreference({
-      accessToken: tenant.mpAccessToken,
+      accessToken: mpAccessToken,
       appointmentId: appointment.id,
       tenantSlug: tenant.slug,
       serviceName: service.name,

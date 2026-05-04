@@ -1,13 +1,16 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Reveal } from "./_components/Reveal";
+import { ThemeToggle } from "./_components/ThemeToggle";
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
       <Nav />
       <Hero />
+      <TrustStrip />
       <Features />
+      <AdminPreview />
       <Industries />
       <HowItWorks />
       <Pricing />
@@ -28,26 +31,33 @@ function Nav() {
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
         <Link
           href="/"
-          className="flex items-center transition-transform hover:scale-105"
+          className="flex items-center transition-transform hover:scale-[1.02]"
           aria-label="TurnoExpress"
         >
           <Image
-            src="/logo.png"
-            alt="TurnoExpress"
-            width={220}
-            height={56}
+            src="/Icono.png"
+            alt=""
+            width={331}
+            height={277}
             priority
-            className="h-12 sm:h-14"
+            className="h-10 w-auto sm:h-11"
             style={{ width: "auto" }}
           />
+          <span className="ml-2.5 inline-block text-xl font-bold tracking-tight sm:text-2xl">
+            <span className="text-zinc-900 dark:text-zinc-50">Turno</span>
+            <span className="bg-gradient-to-r from-sky-500 to-emerald-500 bg-clip-text text-transparent">
+              Express
+            </span>
+          </span>
         </Link>
-        <nav className="flex items-center gap-2 text-sm">
-          <a href="#planes" className="hidden px-3 py-2 text-zinc-600 hover:text-zinc-900 sm:inline dark:text-zinc-400 dark:hover:text-zinc-100">
+        <nav className="hidden items-center gap-1 text-sm sm:flex">
+          <a href="#planes" className="px-3 py-2 text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100">
             Planes
           </a>
-          <a href="#faq" className="hidden px-3 py-2 text-zinc-600 hover:text-zinc-900 sm:inline dark:text-zinc-400 dark:hover:text-zinc-100">
+          <a href="#faq" className="px-3 py-2 text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100">
             Preguntas
           </a>
+          <ThemeToggle />
           <Link
             href="/login"
             className="px-3 py-2 text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
@@ -56,13 +66,46 @@ function Nav() {
           </Link>
           <Link
             href="/signup"
-            className="rounded-md bg-zinc-900 px-4 py-2 text-white hover:bg-zinc-700 dark:bg-white dark:text-zinc-900"
+            className="ml-1 rounded-md bg-gradient-to-r from-sky-500 to-emerald-500 px-4 py-2 font-medium text-white shadow-sm shadow-sky-500/25 transition hover:shadow-md hover:shadow-sky-500/40"
           >
             Crear mi turnera
           </Link>
         </nav>
+        <div className="flex items-center gap-1 sm:hidden">
+          <ThemeToggle />
+          <details className="group relative">
+            <summary
+              className="flex h-10 w-10 cursor-pointer list-none items-center justify-center rounded-md border border-zinc-200 bg-white text-zinc-900 shadow-sm transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 [&::-webkit-details-marker]:hidden"
+              aria-label="Abrir menú"
+            >
+              <MenuIcon className="h-5 w-5 transition-transform duration-300 group-open:rotate-90" />
+            </summary>
+            <div className="absolute right-0 top-full z-50 mt-2 w-56 origin-top-right animate-menu-pop overflow-hidden rounded-xl border border-zinc-200 bg-white p-2 text-sm shadow-xl shadow-zinc-900/10 dark:border-zinc-800 dark:bg-zinc-900">
+              <Link
+                href="/login"
+                className="block rounded-lg px-3 py-2 text-zinc-700 transition hover:bg-zinc-50 hover:text-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-50"
+              >
+                Iniciar sesión
+              </Link>
+              <Link
+                href="/signup"
+                className="mt-1 block rounded-lg bg-gradient-to-r from-sky-500 to-emerald-500 px-3 py-2 text-center font-medium text-white transition hover:opacity-90"
+              >
+                Crear mi turnera
+              </Link>
+            </div>
+          </details>
+        </div>
       </div>
     </header>
+  );
+}
+
+function MenuIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
+      <path d="M4 7h16M4 12h16M4 17h16" strokeLinecap="round" />
+    </svg>
   );
 }
 
@@ -73,8 +116,15 @@ function Nav() {
 function Hero() {
   return (
     <section className="relative overflow-hidden">
-      {/* Fondo animado: gradient lento + blobs */}
+      {/* Fondo animado: gradient lento + blobs + grid */}
       <div className="pointer-events-none absolute inset-0 -z-10 animate-gradient bg-gradient-to-br from-sky-100/70 via-white to-emerald-100/50 dark:from-sky-900/30 dark:via-zinc-950 dark:to-emerald-900/20" />
+      <div
+        className="pointer-events-none absolute inset-0 -z-10 bg-grid-pattern"
+        style={{
+          maskImage: "radial-gradient(ellipse at center, black 30%, transparent 75%)",
+          WebkitMaskImage: "radial-gradient(ellipse at center, black 30%, transparent 75%)",
+        }}
+      />
       <div className="pointer-events-none absolute -left-24 top-12 -z-10 h-72 w-72 animate-blob rounded-full bg-sky-300/40 blur-3xl dark:bg-sky-700/30" />
       <div
         className="pointer-events-none absolute right-0 top-40 -z-10 h-72 w-72 animate-blob rounded-full bg-emerald-300/40 blur-3xl dark:bg-emerald-700/20"
@@ -82,14 +132,7 @@ function Hero() {
       />
 
       <div className="relative mx-auto grid max-w-6xl gap-12 px-6 py-20 md:grid-cols-2 md:items-center md:py-28">
-        <div className="space-y-6">
-          <span
-            className="inline-flex animate-fade-in-up items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-medium text-sky-700 dark:border-sky-800 dark:bg-sky-950 dark:text-sky-300"
-            style={{ animationDelay: "0ms" }}
-          >
-            <span className="inline-block h-1.5 w-1.5 animate-pulse-soft rounded-full bg-sky-500" />
-            Beta abierta · sin tarjeta para arrancar
-          </span>
+        <div className="mx-auto max-w-xl space-y-6 text-center md:mx-0">
           <h1
             className="animate-fade-in-up text-4xl font-semibold leading-tight tracking-tight md:text-5xl"
             style={{ animationDelay: "120ms" }}
@@ -108,12 +151,12 @@ function Hero() {
             y gestioná tu agenda desde un panel pensado para tu negocio.
           </p>
           <div
-            className="flex animate-fade-in-up flex-wrap gap-3"
+            className="flex animate-fade-in-up flex-wrap justify-center gap-3"
             style={{ animationDelay: "360ms" }}
           >
             <Link
               href="/signup"
-              className="group relative overflow-hidden rounded-md bg-zinc-900 px-5 py-3 text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-zinc-700 hover:shadow-lg dark:bg-white dark:text-zinc-900"
+              className="group relative overflow-hidden rounded-md bg-gradient-to-r from-sky-500 to-emerald-500 px-5 py-3 font-medium text-white shadow-lg shadow-sky-500/25 transition hover:-translate-y-0.5 hover:shadow-xl hover:shadow-sky-500/40"
             >
               <span className="relative z-10">Empezar gratis</span>
               <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
@@ -126,7 +169,7 @@ function Hero() {
             </a>
           </div>
           <div
-            className="flex animate-fade-in-up items-center gap-6 pt-2 text-sm text-zinc-500"
+            className="flex animate-fade-in-up flex-wrap items-center justify-center gap-6 pt-2 text-sm text-zinc-500"
             style={{ animationDelay: "480ms" }}
           >
             <Bullet>Sin comisión sobre tus señas</Bullet>
@@ -157,50 +200,195 @@ function Bullet({ children }: { children: React.ReactNode }) {
 }
 
 function PhoneMockup() {
+  const days = [
+    { day: "Lun", date: "12" },
+    { day: "Mar", date: "13", active: true },
+    { day: "Mié", date: "14" },
+    { day: "Jue", date: "15" },
+  ];
+  const slots = ["10:00", "10:45", "11:30", "14:00", "15:15", "16:00"];
+
   return (
-    <div className="relative mx-auto w-full max-w-sm">
-      <div className="rounded-[2rem] border-8 border-zinc-900 bg-white p-3 shadow-2xl dark:border-zinc-700 dark:bg-zinc-900">
-        <div className="rounded-[1.25rem] bg-gradient-to-br from-sky-50 to-white p-4 dark:from-sky-950 dark:to-zinc-900">
-          <div className="mb-3 flex items-center gap-2">
-            <div className="h-8 w-8 rounded-md bg-sky-500" />
-            <div>
-              <p className="text-sm font-semibold">Peluquería Juan</p>
-              <p className="text-[10px] text-zinc-500">turnoexpress.com/juan</p>
+    <div className="relative mx-auto w-full max-w-lg">
+      <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-[0_28px_80px_rgba(15,23,42,0.18)] dark:border-zinc-800 dark:bg-zinc-950">
+        {/* Browser chrome — refuerza que es una página web */}
+        <div className="flex items-center gap-2 border-b border-zinc-200 bg-zinc-100 px-3 py-2.5 dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="flex items-center gap-1.5">
+            <span className="h-2.5 w-2.5 rounded-full bg-rose-400" />
+            <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
+            <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
+          </div>
+          <div className="ml-2 flex flex-1 items-center gap-1.5 rounded-md bg-white px-2.5 py-1 text-[11px] text-zinc-500 dark:bg-zinc-950 dark:text-zinc-400">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3 w-3 text-emerald-500">
+              <path d="M5 12V8a7 7 0 0 1 14 0v4" strokeLinecap="round" />
+              <rect x="4" y="12" width="16" height="9" rx="2" />
+            </svg>
+            <span className="truncate font-mono">turnoexpress.com/juan</span>
+          </div>
+        </div>
+        <div className="bg-zinc-950 px-5 py-4 text-white">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white">
+                <Image
+                  src="/Icono.png"
+                  alt=""
+                  width={331}
+                  height={277}
+                  className="h-8 w-auto"
+                />
+              </div>
+              <div>
+                <p className="text-sm font-semibold leading-tight">Peluquería Juan</p>
+                <p className="text-xs text-zinc-400">turnoexpress.com/juan</p>
+              </div>
+            </div>
+            <span className="rounded-full bg-emerald-400/15 px-3 py-1 text-xs font-medium text-emerald-300">
+              Abierto
+            </span>
+          </div>
+          <div className="mt-5 grid grid-cols-3 gap-2 text-xs">
+            <div className="rounded-lg bg-white/10 p-3">
+              <p className="text-zinc-400">Próximo</p>
+              <p className="mt-1 font-semibold">11:30</p>
+            </div>
+            <div className="rounded-lg bg-white/10 p-3">
+              <p className="text-zinc-400">Seña</p>
+              <p className="mt-1 font-semibold">$3.600</p>
+            </div>
+            <div className="rounded-lg bg-sky-500 p-3">
+              <p className="text-sky-100">Slots</p>
+              <p className="mt-1 font-semibold">12 libres</p>
             </div>
           </div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">
-            Reservar turno
-          </p>
-          <div className="space-y-2">
-            <div className="rounded-md border border-zinc-200 bg-white p-2 dark:border-zinc-800 dark:bg-zinc-950">
-              <p className="text-sm font-medium">Corte de pelo</p>
-              <p className="text-xs text-zinc-500">30 min · $8.000</p>
+        </div>
+
+        <div className="grid gap-4 p-5 sm:grid-cols-[0.9fr_1.1fr]">
+          <div className="space-y-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+                Fecha
+              </p>
+              <div className="mt-2 grid grid-cols-4 gap-2">
+                {days.map((d) => (
+                  <div
+                    key={d.date}
+                    className={`rounded-xl border px-2 py-3 text-center ${
+                      d.active
+                        ? "border-sky-500 bg-sky-500 text-white shadow-md shadow-sky-500/25"
+                        : "border-zinc-200 bg-zinc-50 text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300"
+                    }`}
+                  >
+                    <p className="text-[10px] font-medium uppercase">{d.day}</p>
+                    <p className="text-lg font-semibold leading-none">{d.date}</p>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="rounded-md border-2 border-sky-500 bg-sky-50 p-2 dark:bg-sky-950/50">
-              <p className="text-sm font-medium">Corte + barba</p>
-              <p className="text-xs text-zinc-600 dark:text-zinc-400">45 min · $12.000</p>
-            </div>
-            <div className="grid grid-cols-3 gap-1.5 pt-1">
-              {["10:00", "10:30", "11:00", "11:30", "14:00", "14:30"].map((t, i) => (
-                <div
-                  key={t}
-                  className={`rounded-md py-1.5 text-center text-xs ${
-                    i === 2
-                      ? "bg-sky-500 text-white"
-                      : "border border-zinc-300 dark:border-zinc-700"
-                  }`}
-                >
-                  {t}
+
+            <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs text-zinc-500">Profesional</p>
+                  <p className="text-sm font-semibold">Sofia Ramos</p>
                 </div>
-              ))}
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-amber-100 text-sm font-semibold text-amber-700">
+                  SR
+                </div>
+              </div>
             </div>
-            <div className="mt-2 rounded-md bg-sky-500 py-2 text-center text-xs font-medium text-white">
-              Pagar seña con Mercado Pago
+          </div>
+
+          <div className="space-y-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+                Servicio
+              </p>
+              <div className="mt-2 space-y-2">
+                <div className="rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-950">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium">Corte de pelo</p>
+                      <p className="text-xs text-zinc-500">30 min · $8.000</p>
+                    </div>
+                    <span className="h-3 w-3 rounded-full border border-zinc-300" />
+                  </div>
+                </div>
+                <div className="rounded-xl border-2 border-sky-500 bg-sky-50 p-3 shadow-sm shadow-sky-500/10 dark:bg-sky-950/40">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold">Corte + barba</p>
+                      <p className="text-xs text-zinc-600 dark:text-zinc-300">
+                        45 min · $12.000
+                      </p>
+                    </div>
+                    <CheckIcon className="h-5 w-5 text-sky-600" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+                Horario
+              </p>
+              <div className="mt-2 grid grid-cols-3 gap-2">
+                {slots.map((slot) => (
+                  <div
+                    key={slot}
+                    className={`rounded-lg border py-2 text-center text-xs font-medium ${
+                      slot === "11:30"
+                        ? "border-sky-500 bg-sky-500 text-white"
+                        : "border-zinc-200 bg-white text-zinc-700 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300"
+                    }`}
+                  >
+                    {slot}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-xl bg-zinc-950 p-3 text-white">
+              <div className="flex items-center justify-between gap-3 text-xs">
+                <span className="text-zinc-400">Total</span>
+                <span className="font-semibold">$12.000</span>
+              </div>
+              <div className="mt-3 rounded-lg bg-sky-500 py-2 text-center text-xs font-semibold">
+                Confirmar turno
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Trust strip — barra de cifras / promesas debajo del hero
+// ─────────────────────────────────────────────────────────────────────────────
+
+function TrustStrip() {
+  const stats = [
+    { value: "5 min", label: "para tener tu turnera lista" },
+    { value: "0%", label: "de comisión sobre tus señas" },
+    { value: "24/7", label: "tus clientes reservan cuando quieran" },
+  ];
+  return (
+    <section className="border-y border-zinc-200 bg-white/60 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-900/40">
+      <div className="mx-auto grid max-w-6xl gap-8 px-6 py-10 sm:grid-cols-3">
+        {stats.map((s, i) => (
+          <Reveal key={s.value} delay={i * 80}>
+            <div className="text-center sm:text-left">
+              <p className="bg-gradient-to-r from-sky-600 to-emerald-500 bg-clip-text text-3xl font-bold tracking-tight text-transparent md:text-4xl">
+                {s.value}
+              </p>
+              <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{s.label}</p>
+            </div>
+          </Reveal>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -266,6 +454,156 @@ function Features() {
             </div>
           </Reveal>
         ))}
+      </div>
+    </section>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AdminPreview — mockup del panel de administración
+// ─────────────────────────────────────────────────────────────────────────────
+
+function AdminPreview() {
+  const week = ["Lun 12", "Mar 13", "Mié 14", "Jue 15", "Vie 16", "Sáb 17"];
+  const appts = [
+    { day: 0, start: 9, end: 10, name: "Martina G.", svc: "Color", color: "bg-rose-500/90" },
+    { day: 1, start: 10, end: 11.5, name: "Luis P.", svc: "Corte + barba", color: "bg-sky-500/90" },
+    { day: 1, start: 14, end: 15, name: "Ana R.", svc: "Manicura", color: "bg-pink-500/90" },
+    { day: 2, start: 11, end: 12, name: "Joaquín M.", svc: "Corte", color: "bg-emerald-500/90" },
+    { day: 3, start: 9.5, end: 10.5, name: "Romina F.", svc: "Brushing", color: "bg-violet-500/90" },
+    { day: 3, start: 13, end: 14.5, name: "Pedro O.", svc: "Color + corte", color: "bg-amber-500/90" },
+    { day: 4, start: 10, end: 11, name: "Sofía L.", svc: "Corte", color: "bg-sky-500/90" },
+    { day: 5, start: 11, end: 13, name: "Belén S.", svc: "Color completo", color: "bg-rose-500/90" },
+  ];
+  const dayStart = 9;
+  const dayHours = 8;
+
+  return (
+    <section className="relative overflow-hidden border-y border-zinc-200 bg-white py-20 dark:border-zinc-800 dark:bg-zinc-900/50">
+      <div
+        className="pointer-events-none absolute -right-20 top-1/2 -z-10 h-72 w-72 -translate-y-1/2 animate-blob rounded-full bg-sky-300/30 blur-3xl dark:bg-sky-700/15"
+        style={{ animationDelay: "-3s" }}
+      />
+      <div className="mx-auto grid max-w-6xl gap-12 px-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+        <Reveal>
+          <div>
+            <p className="mb-3 inline-block rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-sky-700 dark:bg-sky-950 dark:text-sky-300">
+              Tu panel de control
+            </p>
+            <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">
+              Toda tu agenda en una sola pantalla
+            </h2>
+            <p className="mt-3 text-zinc-600 dark:text-zinc-400">
+              Vista semanal en escritorio, vista de día en el celular. Ves de un pantallazo qué
+              profesional está libre, quién pagó la seña, y los huecos que podés llenar.
+            </p>
+            <ul className="mt-5 space-y-2 text-sm">
+              <li className="flex items-start gap-2">
+                <CheckIcon className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                <span>Confirmás, reasignás o cancelás turnos en un click.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckIcon className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                <span>Estado de pago de la seña visible al lado de cada turno.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckIcon className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                <span>KPIs en tiempo real: ingresos, ocupación, ausencias.</span>
+              </li>
+            </ul>
+          </div>
+        </Reveal>
+
+        <Reveal delay={120}>
+          <div className="relative">
+            <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-[0_28px_80px_rgba(15,23,42,0.18)] dark:border-zinc-800 dark:bg-zinc-950">
+              {/* Browser chrome */}
+              <div className="flex items-center gap-2 border-b border-zinc-200 bg-zinc-100 px-3 py-2.5 dark:border-zinc-800 dark:bg-zinc-900">
+                <div className="flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-full bg-rose-400" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
+                </div>
+                <div className="ml-2 flex flex-1 items-center gap-1.5 rounded-md bg-white px-2.5 py-1 text-[11px] text-zinc-500 dark:bg-zinc-950 dark:text-zinc-400">
+                  <span className="truncate font-mono">turnoexpress.com/admin</span>
+                </div>
+              </div>
+
+              {/* Stats */}
+              <div className="grid grid-cols-3 gap-3 p-4 sm:p-5">
+                <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900">
+                  <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">Hoy</p>
+                  <p className="mt-1 text-lg font-bold">12 turnos</p>
+                  <p className="text-[10px] text-emerald-600">+18% vs. ayer</p>
+                </div>
+                <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900">
+                  <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">Ingresos</p>
+                  <p className="mt-1 text-lg font-bold">$148K</p>
+                  <p className="text-[10px] text-zinc-500">esta semana</p>
+                </div>
+                <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900">
+                  <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">Ocupación</p>
+                  <p className="mt-1 text-lg font-bold">82%</p>
+                  <p className="text-[10px] text-emerald-600">▲ 4 pts</p>
+                </div>
+              </div>
+
+              {/* Calendar header */}
+              <div className="grid grid-cols-[40px_repeat(6,1fr)] border-t border-zinc-200 bg-zinc-50 text-[10px] font-semibold uppercase tracking-wider text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900">
+                <div className="px-2 py-2" />
+                {week.map((d) => (
+                  <div key={d} className="border-l border-zinc-200 px-2 py-2 text-center dark:border-zinc-800">
+                    {d}
+                  </div>
+                ))}
+              </div>
+
+              {/* Calendar grid */}
+              <div className="relative grid grid-cols-[40px_repeat(6,1fr)]">
+                {/* Hours column */}
+                <div className="border-r border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900">
+                  {Array.from({ length: dayHours }).map((_, i) => (
+                    <div key={i} className="h-8 px-1 pt-0.5 text-right text-[9px] text-zinc-400">
+                      {dayStart + i}h
+                    </div>
+                  ))}
+                </div>
+
+                {/* Day columns */}
+                {week.map((_, dayIdx) => (
+                  <div
+                    key={dayIdx}
+                    className="relative border-l border-zinc-200 dark:border-zinc-800"
+                    style={{ height: `${dayHours * 32}px` }}
+                  >
+                    {Array.from({ length: dayHours }).map((__, i) => (
+                      <div
+                        key={i}
+                        className="absolute inset-x-0 border-t border-dashed border-zinc-100 dark:border-zinc-800/60"
+                        style={{ top: `${i * 32}px`, height: "32px" }}
+                      />
+                    ))}
+                    {appts
+                      .filter((a) => a.day === dayIdx)
+                      .map((a, i) => (
+                        <div
+                          key={i}
+                          className={`absolute inset-x-1 overflow-hidden rounded-md px-1.5 py-1 text-[9px] leading-tight text-white shadow-sm ${a.color}`}
+                          style={{
+                            top: `${(a.start - dayStart) * 32}px`,
+                            height: `${(a.end - a.start) * 32}px`,
+                          }}
+                        >
+                          <p className="truncate font-semibold">{a.name}</p>
+                          <p className="truncate opacity-90">{a.svc}</p>
+                        </div>
+                      ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </Reveal>
       </div>
     </section>
   );
@@ -457,7 +795,7 @@ const PLANS: Plan[] = [
   {
     name: "Básico",
     tagline: "Para empezar a tomar turnos sin invertir de más.",
-    price: "$4.900",
+    price: "$13.000",
     priceNote: "/mes",
     features: [
       "1 profesional",
@@ -481,7 +819,7 @@ const PLANS: Plan[] = [
   {
     name: "Pro",
     tagline: "Para negocios establecidos con equipo y volumen.",
-    price: "$11.900",
+    price: "$25.000",
     priceNote: "/mes",
     highlight: true,
     features: [
@@ -506,7 +844,7 @@ const PLANS: Plan[] = [
   {
     name: "Premium",
     tagline: "Para centros, cadenas y operaciones grandes.",
-    price: "$24.900",
+    price: "$40.000",
     priceNote: "/mes",
     features: [
       "Profesionales ilimitados",
@@ -632,8 +970,85 @@ function Pricing() {
       <p className="mt-8 text-center text-xs text-zinc-500">
         Todos los planes incluyen: cobro de seña con Mercado Pago, calendario, panel admin, vista mobile y SSL.
       </p>
+
+      <Reveal>
+        <div className="mt-14 overflow-hidden rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="border-b border-zinc-200 px-5 py-4 dark:border-zinc-800">
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-zinc-500">
+              Compará todo lo que incluye cada plan
+            </h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-zinc-50 dark:bg-zinc-900/60">
+                <tr>
+                  <th className="px-5 py-3 text-left font-medium text-zinc-500"> </th>
+                  <th className="px-5 py-3 text-center font-semibold">Básico</th>
+                  <th className="px-5 py-3 text-center font-semibold">
+                    <span className="inline-flex items-center gap-1.5">
+                      Pro
+                      <span className="rounded-full bg-sky-500 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wider text-white">
+                        Popular
+                      </span>
+                    </span>
+                  </th>
+                  <th className="px-5 py-3 text-center font-semibold">Premium</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                {COMPARISON_ROWS.map((row) => (
+                  <tr key={row.label} className="transition hover:bg-zinc-50/70 dark:hover:bg-zinc-800/30">
+                    <th scope="row" className="px-5 py-3 text-left font-medium text-zinc-700 dark:text-zinc-300">
+                      {row.label}
+                    </th>
+                    <ComparisonCell value={row.basic} />
+                    <ComparisonCell value={row.pro} highlight />
+                    <ComparisonCell value={row.premium} />
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </Reveal>
     </section>
   );
+}
+
+const COMPARISON_ROWS: { label: string; basic: string | boolean; pro: string | boolean; premium: string | boolean }[] = [
+  { label: "URL personalizada", basic: true, pro: true, premium: true },
+  { label: "Mercado Pago integrado (0% comisión)", basic: true, pro: true, premium: true },
+  { label: "Profesionales", basic: "1", pro: "Hasta 5", premium: "Ilimitados" },
+  { label: "Turnos por mes", basic: "Hasta 50", pro: "Ilimitados", premium: "Ilimitados" },
+  { label: "Logo y color de marca", basic: true, pro: true, premium: true },
+  { label: "Branding completo (tipografía, imagen)", basic: false, pro: true, premium: true },
+  { label: "Recordatorios por email", basic: false, pro: true, premium: true },
+  { label: "Estadísticas y reportes", basic: false, pro: true, premium: true },
+  { label: "Multi-sucursal", basic: false, pro: false, premium: true },
+  { label: "Dominio propio (tunegocio.com)", basic: false, pro: false, premium: true },
+  { label: "API para integraciones", basic: false, pro: false, premium: true },
+  { label: "Onboarding 1 a 1", basic: false, pro: false, premium: true },
+  { label: "Soporte", basic: "Email", pro: "Prioritario", premium: "Dedicado" },
+];
+
+function ComparisonCell({ value, highlight = false }: { value: string | boolean; highlight?: boolean }) {
+  const base = "px-5 py-3 text-center";
+  const cls = highlight ? `${base} bg-sky-50/50 dark:bg-sky-950/20` : base;
+  if (value === true) {
+    return (
+      <td className={cls}>
+        <CheckIcon className="mx-auto h-4 w-4 text-emerald-600" />
+      </td>
+    );
+  }
+  if (value === false) {
+    return (
+      <td className={cls}>
+        <span className="mx-auto block h-px w-3 bg-zinc-300 dark:bg-zinc-700" />
+      </td>
+    );
+  }
+  return <td className={`${cls} font-medium`}>{value}</td>;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -867,8 +1282,11 @@ function HeartIcon() {
 }
 function MedicalIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className="h-6 w-6">
-      <path d="M9 3a1 1 0 011-1h4a1 1 0 011 1v6h6a1 1 0 011 1v4a1 1 0 01-1 1h-6v6a1 1 0 01-1 1h-4a1 1 0 01-1-1v-6H3a1 1 0 01-1-1v-4a1 1 0 011-1h6V3z" />
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">
+      <path d="M4.8 2.3A.3.3 0 1 1 5 2H8a.2.2 0 0 1 .2.2v5.5a.2.2 0 0 1-.2.2H4.9a.2.2 0 0 1-.2-.2z" />
+      <path d="M8 15a6 6 0 0 0 12 0v-3" />
+      <path d="M11 3v9a4 4 0 0 0 8 0V3" />
+      <circle cx="20" cy="10" r="2" />
     </svg>
   );
 }
@@ -881,8 +1299,9 @@ function DumbbellIcon() {
 }
 function LeafIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className="h-6 w-6">
-      <path d="M19 4c-9 1-13 6-15 13l1.5.5c.7-2 1.5-3.5 2.7-4.8 1.7 1 3.6.6 5.3-.9 1.6-1.5 2.5-3.6 2-5.5 1.4 0 2.6-.4 3.5-1.3.5-.4.5-1 0-1z" />
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">
+      <path d="M11 20A7 7 0 0 1 4 13c0-7 6-11 17-11 0 11-4 17-11 17a7 7 0 0 1-6-3" />
+      <path d="M2 22c2-7 6-12 13-15" />
     </svg>
   );
 }

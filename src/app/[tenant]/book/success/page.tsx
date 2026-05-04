@@ -107,7 +107,11 @@ export default async function BookingSuccessPage({
           />
           <Row
             label="Seña"
-            value={`$${((fresh?.depositCents ?? 0) / 100).toLocaleString("es-AR")}`}
+            value={
+              fresh?.depositCents
+                ? `$${(fresh.depositCents / 100).toLocaleString("es-AR")}`
+                : "Sin pago"
+            }
           />
         </dl>
         <Link

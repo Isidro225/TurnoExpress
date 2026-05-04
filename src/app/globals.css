@@ -20,7 +20,7 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 /* Cuando aplicamos .dark al wrapper del tenant, ajustamos también las CSS vars
@@ -49,6 +49,30 @@ body {
   to { opacity: 1; }
 }
 
+@keyframes step-reveal {
+  from {
+    opacity: 0;
+    transform: translateX(22px);
+    clip-path: inset(0 0 0 18%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes menu-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 @keyframes pulse-soft {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.55; }
@@ -74,6 +98,8 @@ body {
 .animate-float { animation: float 6s ease-in-out infinite; }
 .animate-fade-in-up { animation: fade-in-up 0.7s ease-out both; }
 .animate-fade-in { animation: fade-in 0.6s ease-out both; }
+.animate-step-reveal { animation: step-reveal 0.42s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.animate-menu-pop { animation: menu-pop 0.22s cubic-bezier(0.22, 1, 0.36, 1) both; }
 .animate-pulse-soft { animation: pulse-soft 2.4s ease-in-out infinite; }
 .animate-blob { animation: blob 14s ease-in-out infinite; }
 
@@ -93,6 +119,34 @@ body {
   animation: shimmer 2.6s linear infinite;
 }
 
+/* Subtle grid pattern para fondos de hero/secciones */
+.bg-grid-pattern {
+  background-image:
+    linear-gradient(to right, rgba(15, 23, 42, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(15, 23, 42, 0.05) 1px, transparent 1px);
+  background-size: 36px 36px;
+}
+.dark .bg-grid-pattern {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+}
+
+/* Animación de apertura de <details> en el FAQ */
+@keyframes faq-content-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+details[open] > *:not(summary) {
+  animation: faq-content-in 0.28s ease-out both;
+}
+
 .reveal {
   opacity: 0;
   transform: translateY(24px);
@@ -108,10 +162,15 @@ body {
   .animate-float,
   .animate-fade-in-up,
   .animate-fade-in,
+  .animate-step-reveal,
+  .animate-menu-pop,
   .animate-pulse-soft,
   .animate-blob,
   .animate-gradient,
   .animate-shimmer {
+    animation: none !important;
+  }
+  details[open] > *:not(summary) {
     animation: none !important;
   }
   .reveal {

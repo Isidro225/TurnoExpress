@@ -22,7 +22,6 @@ const settingsSchema = z.object({
   name: z.string().min(2).max(80),
   description: z.string().max(500).optional().nullable(),
   primaryColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional().nullable(),
-  backgroundColor: z.enum(["white", "gray", "black"]).optional().nullable(),
   depositPct: z.coerce.number().int().min(0).max(100),
   logoUrl: logoSchema,
 });
@@ -36,7 +35,6 @@ export async function updateSettings(formData: FormData) {
     name: formData.get("name"),
     description: formData.get("description") || null,
     primaryColor: formData.get("primaryColor") || null,
-    backgroundColor: formData.get("backgroundColor") || null,
     depositPct: formData.get("depositPct") ?? 30,
     logoUrl: formData.get("logoUrl") || null,
   });
@@ -47,7 +45,6 @@ export async function updateSettings(formData: FormData) {
       name: data.name,
       description: data.description ?? null,
       primaryColor: data.primaryColor ?? null,
-      backgroundColor: data.backgroundColor ?? null,
       depositPct: data.depositPct,
       logoUrl: data.logoUrl || null,
     },

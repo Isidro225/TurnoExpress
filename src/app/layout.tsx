@@ -16,6 +16,10 @@ export const metadata: Metadata = {
   title: "TurnoExpress · Sistema de turnos online con Mercado Pago",
   description:
     "Personalizá tu turnera, cobrá la seña con Mercado Pago y gestioná tu agenda desde un panel pensado para tu negocio.",
+  icons: {
+    icon: [{ url: "/Icono.png", type: "image/png" }],
+    shortcut: "/Icono.png",
+  },
 };
 
 export default function RootLayout({
@@ -28,7 +32,7 @@ export default function RootLayout({
       lang="es"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col font-sans">{children}</body>
     </html>
   );
 }

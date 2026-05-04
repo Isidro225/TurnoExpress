@@ -1,5 +1,6 @@
 import { getTenantBySlug } from "@/lib/tenant";
 import { prisma } from "@/lib/prisma";
+import { isBookingPaymentBypassEnabled } from "@/lib/booking-payment";
 import { BookingFlow } from "./book/BookingFlow";
 
 export default async function TenantPublicPage({
@@ -12,6 +13,7 @@ export default async function TenantPublicPage({
   const { tenant: slug } = await params;
   const sp = await searchParams;
   const tenant = (await getTenantBySlug(slug))!;
+  const paymentBypassEnabled = isBookingPaymentBypassEnabled();
 
   const services = await prisma.service.findMany({
     where: { tenantId: tenant.id, active: true },
@@ -37,17 +39,16 @@ export default async function TenantPublicPage({
     }));
 
   return (
-    <div className="mx-auto max-w-2xl px-6 py-10">
-      <h1 className="mb-6 text-2xl font-semibold">Reservá tu turno</h1>
-
+    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
       {servicesForFlow.length === 0 ? (
-        <div className="rounded-xl border border-zinc-200 bg-white p-6 text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="rounded-lg border border-zinc-200 bg-white p-6 text-sm text-zinc-500 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
           Todavía no hay servicios con profesional asignado. Volvé en un rato.
         </div>
       ) : (
         <BookingFlow
           tenantSlug={tenant.slug}
           mpEnabled={!!tenant.mpAccessToken}
+          paymentBypassEnabled={paymentBypassEnabled}
           services={servicesForFlow}
           initialServiceId={sp.service ?? null}
         />

@@ -103,40 +103,6 @@ export default async function SettingsPage({
             </Field>
           </div>
 
-          <fieldset>
-            <legend className="mb-2 block text-sm">Color de fondo</legend>
-            <div className="flex gap-3">
-              {[
-                { value: "white", label: "Blanco", swatch: "#ffffff", border: true },
-                { value: "gray", label: "Gris", swatch: "#e4e4e7" },
-                { value: "black", label: "Negro", swatch: "#09090b" },
-              ].map((opt) => {
-                const current = tenant.backgroundColor ?? "white";
-                return (
-                  <label key={opt.value} className="cursor-pointer">
-                    <input
-                      type="radio"
-                      name="backgroundColor"
-                      value={opt.value}
-                      defaultChecked={current === opt.value}
-                      className="peer sr-only"
-                    />
-                    <div className="flex flex-col items-center gap-1.5 rounded-lg border-2 border-transparent p-2 transition peer-checked:border-sky-500 peer-checked:ring-2 peer-checked:ring-sky-500/25">
-                      <span
-                        className={`block h-12 w-12 rounded-md ${opt.border ? "border border-zinc-200" : ""}`}
-                        style={{ backgroundColor: opt.swatch }}
-                      />
-                      <span className="text-xs">{opt.label}</span>
-                    </div>
-                  </label>
-                );
-              })}
-            </div>
-            <p className="mt-2 text-xs text-zinc-500">
-              Si elegís negro, los textos y las cards de la turnera pública se adaptan
-              automáticamente al modo oscuro.
-            </p>
-          </fieldset>
           <div>
             <p className="text-xs uppercase tracking-wider text-zinc-500">URL pública</p>
             <p className="mt-1 font-mono text-sm">/{tenant.slug}</p>
@@ -188,6 +154,7 @@ export default async function SettingsPage({
             <div className="space-y-3">
               {oauthConfigured ? (
                 <div>
+                  {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- navega a un route handler que redirige a Mercado Pago */}
                   <a
                     href="/api/mercadopago/oauth/connect"
                     className="inline-block rounded-md bg-[#009ee3] px-4 py-2 text-sm font-medium text-white hover:bg-[#0086c4]"
