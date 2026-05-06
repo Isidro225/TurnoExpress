@@ -81,12 +81,14 @@ export async function POST(req: Request) {
   let priorServiceName: string | null = null;
   let priorAge: string | null = null;
   let procedureMode: string | null = isNails ? "fresh" : null;
-  let withDesign = false;
+  let designId: string | null = null;
+  let designName: string | null = null;
+  let designPriceCents: number | null = null;
 
   if (isNails) {
     const requestedMode = parsed.data.procedureMode ?? "fresh";
     const requestedPriorId = parsed.data.priorServiceId ?? null;
-    withDesign = !!parsed.data.withDesign;
+    const requestedDesignId = parsed.data.designId ?? null;
     procedureMode = requestedMode;
     priorAge = parsed.data.priorAge ?? null;
 
@@ -110,8 +112,20 @@ export async function POST(req: Request) {
       if (requestedMode === "retiro") extraMinutes += prior.removalMin;
     }
 
-    if (withDesign && service.designMin) {
-      extraMinutes += service.designMin;
+    if (requestedDesignId) {
+      const design = await prisma.design.findFirst({
+        where: { id: requestedDesignId, tenantId: tenant.id, active: true },
+      });
+      if (!design) {
+        return NextResponse.json(
+          { error: "El diseño seleccionado no está disponible." },
+          { status: 400 }
+        );
+      }
+      designId = design.id;
+      designName = design.name;
+      designPriceCents = design.priceCents;
+      extraMinutes += design.durationMin;
     }
   }
 
@@ -156,10 +170,11 @@ export async function POST(req: Request) {
     throw err;
   }
 
+  const totalPriceCents = service.priceCents + (designPriceCents ?? 0);
   const depositPct = service.depositPct ?? tenant.depositPct;
   const requiredDepositCents = Math.max(
     100,
-    Math.round((service.priceCents * depositPct) / 100)
+    Math.round((totalPriceCents * depositPct) / 100)
   );
   const depositCents = paymentBypassEnabled ? 0 : requiredDepositCents;
 
@@ -178,12 +193,14 @@ export async function POST(req: Request) {
       customerEmail: parsed.data.customerEmail,
       customerPhone: parsed.data.customerPhone,
       notes: parsed.data.notes,
-      priceCents: service.priceCents,
+      priceCents: totalPriceCents,
       depositCents,
       priorServiceName,
       priorAge,
       procedureMode,
-      withDesign,
+      designId,
+      designName,
+      designPriceCents,
       extraMinutes,
     },
   });
