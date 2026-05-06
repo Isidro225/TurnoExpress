@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { BUSINESS_TYPE_VALUES } from "@/lib/business-types";
 import { TENANT_TITLE_FONT_VALUES } from "@/lib/tenant-fonts";
 
 const MAX_LOGO_BYTES = 300 * 1024; // ~300KB después de base64 (algo más que el límite cliente para tolerancia)
@@ -21,6 +22,7 @@ const logoSchema = z
 
 const settingsSchema = z.object({
   name: z.string().min(2).max(80),
+  businessType: z.enum(BUSINESS_TYPE_VALUES).optional().nullable(),
   description: z.string().max(500).optional().nullable(),
   primaryColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional().nullable(),
   titleFont: z.enum(TENANT_TITLE_FONT_VALUES),
@@ -35,6 +37,7 @@ export async function updateSettings(formData: FormData) {
 
   const data = settingsSchema.parse({
     name: formData.get("name"),
+    businessType: formData.get("businessType") || null,
     description: formData.get("description") || null,
     primaryColor: formData.get("primaryColor") || null,
     titleFont: formData.get("titleFont") || "system",
@@ -46,6 +49,7 @@ export async function updateSettings(formData: FormData) {
     where: { id: tenantId },
     data: {
       name: data.name,
+      businessType: data.businessType ?? null,
       description: data.description ?? null,
       primaryColor: data.primaryColor ?? null,
       titleFont: data.titleFont,

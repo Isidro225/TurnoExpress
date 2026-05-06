@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
@@ -105,9 +106,9 @@ export default async function EditStaffPage({
         {services.length === 0 ? (
           <p className="text-sm text-zinc-500">
             Primero creá servicios desde la sección{" "}
-            <a href="/admin/services" className="underline">
+            <Link href="/admin/services" className="underline">
               Servicios
-            </a>
+            </Link>
             .
           </p>
         ) : (

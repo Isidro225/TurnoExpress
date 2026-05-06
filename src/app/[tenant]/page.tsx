@@ -50,6 +50,7 @@ export default async function TenantPublicPage({
       ) : (
         <BookingFlow
           tenantSlug={tenant.slug}
+          businessType={tenant.businessType}
           mpEnabled={!!tenant.mpAccessToken}
           paymentBypassEnabled={paymentBypassEnabled}
           services={servicesForFlow}

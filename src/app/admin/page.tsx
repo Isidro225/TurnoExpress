@@ -13,10 +13,12 @@ import {
 import { es } from "date-fns/locale";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { getTenantPlanUsage } from "@/lib/plan-limits";
 import { PageHeader } from "./_components/PageHeader";
 import { EmptyState } from "./_components/EmptyState";
 import { Avatar } from "./_components/Avatar";
 import { StatusBadge } from "./_components/StatusBadge";
+import { PlanUsageAlerts } from "./_components/PlanUsage";
 import {
   ArrowDownIcon,
   ArrowUpIcon,
@@ -103,12 +105,15 @@ export default async function AdminDashboard({
     }),
   ]);
 
-  const upcoming = await prisma.appointment.findMany({
-    where: { tenantId, startsAt: { gte: now } },
-    orderBy: { startsAt: "asc" },
-    take: 5,
-    include: { service: true, staff: true, payments: true },
-  });
+  const [upcoming, planUsage] = await Promise.all([
+    prisma.appointment.findMany({
+      where: { tenantId, startsAt: { gte: now } },
+      orderBy: { startsAt: "asc" },
+      take: 5,
+      include: { service: true, staff: true, payments: true },
+    }),
+    getTenantPlanUsage(tenantId),
+  ]);
 
   // Construir buckets para últimos 7 días
   const days7 = Array.from({ length: 7 }, (_, i) => subDays(startOfDay(now), 6 - i));
@@ -134,6 +139,8 @@ export default async function AdminDashboard({
           Volviste de Mercado Pago. Si el pago quedÃ³ aprobado, la suscripciÃ³n se actualiza por webhook.
         </div>
       )}
+
+      <PlanUsageAlerts usage={planUsage} />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard

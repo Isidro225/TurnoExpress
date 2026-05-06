@@ -1,6 +1,15 @@
 export const BILLING_PLAN_VALUES = ["basic", "pro", "premium"] as const;
+export const BILLING_STATUS_VALUES = [
+  "trialing",
+  "pending",
+  "active",
+  "paused",
+  "cancelled",
+  "past_due",
+] as const;
 
 export type BillingPlanId = (typeof BILLING_PLAN_VALUES)[number];
+export type BillingStatus = (typeof BILLING_STATUS_VALUES)[number];
 
 export type BillingPlan = {
   id: BillingPlanId;
@@ -8,6 +17,25 @@ export type BillingPlan = {
   tagline: string;
   priceCents: number;
 };
+
+export const BILLING_TRIAL_DAYS = 14;
+
+export function createBillingTrialWindow(now = new Date()): {
+  trialStartedAt: Date;
+  trialEndsAt: Date;
+} {
+  const trialStartedAt = new Date(now);
+  const trialEndsAt = new Date(now);
+  trialEndsAt.setUTCDate(trialEndsAt.getUTCDate() + BILLING_TRIAL_DAYS);
+  return { trialStartedAt, trialEndsAt };
+}
+
+export function isBillingTrialActive(
+  trialEndsAt: Date | null | undefined,
+  now = new Date()
+): boolean {
+  return !!trialEndsAt && trialEndsAt.getTime() > now.getTime();
+}
 
 export const BILLING_PLANS: Record<BillingPlanId, BillingPlan> = {
   basic: {

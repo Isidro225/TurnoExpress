@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { assertCanCreateStaff } from "@/lib/plan-limits";
 
 const staffSchema = z.object({
   name: z.string().min(1).max(120),
@@ -32,6 +33,7 @@ function parseStaffForm(form: FormData) {
 
 export async function createStaff(formData: FormData) {
   const tenantId = await requireTenantId();
+  await assertCanCreateStaff(tenantId);
   const data = parseStaffForm(formData);
   const created = await prisma.staff.create({
     data: {

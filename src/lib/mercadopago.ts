@@ -32,6 +32,14 @@ export type CreatePlatformSubscriptionArgs = {
   amountCents: number;
   payerEmail: string;
   baseUrl: string;
+  trialEndsAt?: Date;
+};
+
+export type UpdatePlatformSubscriptionArgs = {
+  accessToken: string;
+  subscriptionId: string;
+  planName: string;
+  amountCents: number;
 };
 
 export type MpPreapprovalResponse = {
@@ -87,6 +95,9 @@ export async function exchangeMpCode(args: {
 }
 
 export async function createDepositPreference(args: CreateDepositArgs) {
+  // MP rechaza auto_return y notification_url si las URLs no son HTTPS públicas.
+  // En desarrollo (localhost / http) las omitimos para que el cobro se pueda probar.
+  const isPublicHttps = args.baseUrl.startsWith("https://");
   const pref = mpPreference(args.accessToken);
   const result = await pref.create({
     body: {
@@ -106,8 +117,12 @@ export async function createDepositPreference(args: CreateDepositArgs) {
         failure: `${args.baseUrl}/${args.tenantSlug}/book/failure?id=${args.appointmentId}`,
         pending: `${args.baseUrl}/${args.tenantSlug}/book/pending?id=${args.appointmentId}`,
       },
-      auto_return: "approved",
-      notification_url: `${args.baseUrl}/api/mercadopago/webhook`,
+      ...(isPublicHttps
+        ? {
+            auto_return: "approved" as const,
+            notification_url: `${args.baseUrl}/api/mercadopago/webhook`,
+          }
+        : {}),
     },
   });
   return result;
@@ -130,6 +145,7 @@ export async function createPlatformSubscription(
       auto_recurring: {
         frequency: 1,
         frequency_type: "months",
+        ...(args.trialEndsAt ? { start_date: args.trialEndsAt.toISOString() } : {}),
         transaction_amount: args.amountCents / 100,
         currency_id: "ARS",
       },
@@ -164,6 +180,36 @@ export async function getPlatformSubscription(
   if (!res.ok) {
     const text = await res.text().catch(() => "");
     throw new Error(`MP subscription get failed: ${res.status} ${text}`);
+  }
+
+  return (await res.json()) as MpPreapprovalResponse;
+}
+
+export async function updatePlatformSubscription(
+  args: UpdatePlatformSubscriptionArgs
+): Promise<MpPreapprovalResponse> {
+  const res = await fetch(
+    `https://api.mercadopago.com/preapproval/${encodeURIComponent(args.subscriptionId)}`,
+    {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${args.accessToken}`,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({
+        reason: `TurnoExpress ${args.planName}`,
+        auto_recurring: {
+          transaction_amount: args.amountCents / 100,
+          currency_id: "ARS",
+        },
+      }),
+    }
+  );
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`MP subscription update failed: ${res.status} ${text}`);
   }
 
   return (await res.json()) as MpPreapprovalResponse;

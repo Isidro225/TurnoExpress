@@ -7,11 +7,14 @@ export function ThemeToggle() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
     const stored = localStorage.getItem("turnoexpress-theme");
     const prefersDark = stored === "dark";
-    setIsDark(prefersDark);
     document.documentElement.classList.toggle("dark", prefersDark);
+    const id = window.setTimeout(() => {
+      setIsDark(prefersDark);
+      setMounted(true);
+    }, 0);
+    return () => window.clearTimeout(id);
   }, []);
 
   function toggle() {

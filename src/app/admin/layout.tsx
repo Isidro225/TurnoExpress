@@ -9,7 +9,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   const tenant = await prisma.tenant.findUnique({
     where: { id: session.user.tenantId },
-    select: { name: true, slug: true },
+    select: { name: true, slug: true, businessType: true },
   });
   if (!tenant) redirect("/login");
 
@@ -23,6 +23,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <AdminSidebar
         tenantName={tenant.name}
         tenantSlug={tenant.slug}
+        businessType={tenant.businessType}
         signOutAction={signOutAction}
       />
       <main className="flex-1 px-4 py-6 md:px-8 md:py-10">

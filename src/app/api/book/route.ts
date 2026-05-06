@@ -4,6 +4,7 @@ import { areIntervalsOverlapping } from "date-fns";
 import { prisma } from "@/lib/prisma";
 import { createDepositPreference } from "@/lib/mercadopago";
 import { isBookingPaymentBypassEnabled } from "@/lib/booking-payment";
+import { assertCanCreateAppointment, PlanLimitError } from "@/lib/plan-limits";
 
 const bookSchema = z.object({
   tenantSlug: z.string().min(1),
@@ -95,6 +96,18 @@ export async function POST(req: Request) {
     );
   }
 
+  try {
+    await assertCanCreateAppointment(tenant.id);
+  } catch (err) {
+    if (err instanceof PlanLimitError) {
+      return NextResponse.json(
+        { error: "Este negocio no está aceptando más reservas este mes." },
+        { status: 403 }
+      );
+    }
+    throw err;
+  }
+
   const depositPct = service.depositPct ?? tenant.depositPct;
   const requiredDepositCents = Math.max(
     100,
@@ -146,6 +159,7 @@ export async function POST(req: Request) {
     preferenceId = pref.id ?? "";
     if (!initPoint) throw new Error("MP no devolvió init_point");
   } catch (err) {
+    console.error("[book] createDepositPreference falló:", err);
     await prisma.appointment.delete({ where: { id: appointment.id } });
     return NextResponse.json(
       {

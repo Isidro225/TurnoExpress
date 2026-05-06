@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { BusinessTypeIcon } from "@/app/_components/BusinessTypeIcon";
 import {
   CalendarIcon,
   ClipboardIcon,
@@ -12,7 +13,6 @@ import {
   ExternalLinkIcon,
   LogoutIcon,
   MenuIcon,
-  ScissorsIcon,
   SettingsIcon,
   UsersIcon,
 } from "./AdminIcons";
@@ -20,6 +20,7 @@ import {
 type Props = {
   tenantName: string;
   tenantSlug: string;
+  businessType?: string | null;
   signOutAction: () => void | Promise<void>;
 };
 
@@ -27,7 +28,7 @@ const NAV_ITEMS: { href: string; label: string; icon: React.ReactNode }[] = [
   { href: "/admin", label: "Resumen", icon: <DashboardIcon /> },
   { href: "/admin/calendar", label: "Calendario", icon: <CalendarIcon /> },
   { href: "/admin/appointments", label: "Turnos", icon: <ClipboardIcon /> },
-  { href: "/admin/services", label: "Servicios", icon: <ScissorsIcon /> },
+  { href: "/admin/services", label: "Servicios", icon: null },
   { href: "/admin/staff", label: "Personal", icon: <UsersIcon /> },
   { href: "/admin/settings", label: "Configuración", icon: <SettingsIcon /> },
 ];
@@ -37,13 +38,24 @@ function isActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(href + "/");
 }
 
-export function AdminSidebar({ tenantName, tenantSlug, signOutAction }: Props) {
+export function AdminSidebar({
+  tenantName,
+  tenantSlug,
+  businessType,
+  signOutAction,
+}: Props) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const navItems = NAV_ITEMS.map((item) =>
+    item.href === "/admin/services"
+      ? { ...item, icon: <BusinessTypeIcon businessType={businessType} /> }
+      : item
+  );
 
   // Cerrar drawer al navegar
   useEffect(() => {
-    setOpen(false);
+    const id = window.setTimeout(() => setOpen(false), 0);
+    return () => window.clearTimeout(id);
   }, [pathname]);
 
   // Bloquear scroll del body cuando drawer está abierto
@@ -134,7 +146,7 @@ export function AdminSidebar({ tenantName, tenantSlug, signOutAction }: Props) {
         {/* Nav */}
         <nav className="flex-1 overflow-y-auto px-3 py-4 text-sm">
           <ul className="space-y-0.5">
-            {NAV_ITEMS.map((item) => {
+            {navItems.map((item) => {
               const active = isActive(pathname, item.href);
               return (
                 <li key={item.href}>

@@ -3,28 +3,75 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { getTenantPlanUsage } from "@/lib/plan-limits";
 import { PageHeader } from "../_components/PageHeader";
 import { EmptyState } from "../_components/EmptyState";
 import { Avatar } from "../_components/Avatar";
 import { StatusBadge } from "../_components/StatusBadge";
-import { ClipboardIcon, CreditCardIcon } from "../_components/AdminIcons";
+import { PlanUsageBar } from "../_components/PlanUsage";
+import { ClipboardIcon, CreditCardIcon, PlusIcon } from "../_components/AdminIcons";
 
 export default async function AppointmentsPage() {
   const session = await auth();
   const tenantId = session!.user.tenantId!;
-  const appts = await prisma.appointment.findMany({
-    where: { tenantId },
-    orderBy: { startsAt: "desc" },
-    take: 50,
-    include: { service: true, staff: true, payments: true },
-  });
+  const [appts, usage] = await Promise.all([
+    prisma.appointment.findMany({
+      where: { tenantId },
+      orderBy: { startsAt: "desc" },
+      take: 50,
+      include: { service: true, staff: true, payments: true },
+    }),
+    getTenantPlanUsage(tenantId),
+  ]);
+
+  const reached = usage.appointmentsThisMonth.reached;
+  const showUsageCard = usage.appointmentsThisMonth.limit != null;
 
   return (
     <div>
       <PageHeader
         title="Turnos"
         description="Los últimos 50 turnos. Tocá uno para ver detalle, reagendar o cancelar."
+        actions={
+          reached
+            ? [
+                {
+                  kind: "primary",
+                  label: "Subir de plan",
+                  href: "/admin/settings#plan",
+                  icon: <PlusIcon />,
+                },
+              ]
+            : [
+                {
+                  kind: "primary",
+                  label: "Nuevo turno",
+                  href: "/admin/appointments/new",
+                  icon: <PlusIcon />,
+                },
+              ]
+        }
       />
+
+      {showUsageCard && (
+        <div className="mb-4 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
+          <PlanUsageBar
+            label={`Turnos este mes (plan ${usage.planName})`}
+            used={usage.appointmentsThisMonth.used}
+            limit={usage.appointmentsThisMonth.limit}
+          />
+          {reached && (
+            <p className="mt-3 text-xs text-amber-700 dark:text-amber-400">
+              Llegaste al máximo de turnos del mes en tu plan.{" "}
+              <Link href="/admin/settings#plan" className="font-semibold underline">
+                Subí de plan
+              </Link>{" "}
+              para tomar más reservas este mes.
+            </p>
+          )}
+        </div>
+      )}
+
       <div className="rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
         {appts.length === 0 ? (
           <EmptyState

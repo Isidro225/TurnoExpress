@@ -6,8 +6,10 @@ import { isReservedSlug, normalizeSlug } from "@/lib/tenant";
 import {
   BILLING_PLANS,
   BILLING_PLAN_VALUES,
+  createBillingTrialWindow,
   normalizeBillingPlan,
 } from "@/lib/billing-plans";
+import { BUSINESS_TYPE_VALUES } from "@/lib/business-types";
 import { createPlatformSubscription } from "@/lib/mercadopago";
 
 const signupSchema = z.object({
@@ -16,6 +18,7 @@ const signupSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
   ownerName: z.string().min(1).max(80),
+  businessType: z.enum(BUSINESS_TYPE_VALUES),
   billingPlan: z.enum(BILLING_PLAN_VALUES).optional(),
 });
 
@@ -53,13 +56,17 @@ export async function POST(req: Request) {
   const passwordHash = await bcrypt.hash(parsed.data.password, 10);
   const billingPlanId = normalizeBillingPlan(parsed.data.billingPlan);
   const billingPlan = BILLING_PLANS[billingPlanId];
+  const trialWindow = createBillingTrialWindow();
 
   const tenant = await prisma.tenant.create({
     data: {
       slug,
       name: parsed.data.businessName,
+      businessType: parsed.data.businessType,
       billingPlan: billingPlanId,
-      billingStatus: "pending",
+      billingStatus: "trialing",
+      trialStartedAt: trialWindow.trialStartedAt,
+      trialEndsAt: trialWindow.trialEndsAt,
       users: {
         create: {
           email: parsed.data.email,
@@ -75,7 +82,12 @@ export async function POST(req: Request) {
   const platformAccessToken = process.env.MP_PLATFORM_ACCESS_TOKEN?.trim();
   if (!platformAccessToken) {
     return NextResponse.json({
-      tenant: { id: tenant.id, slug: tenant.slug, name: tenant.name },
+      tenant: {
+        id: tenant.id,
+        slug: tenant.slug,
+        name: tenant.name,
+        trialEndsAt: tenant.trialEndsAt,
+      },
       billingConfigured: false,
     });
   }
@@ -91,6 +103,7 @@ export async function POST(req: Request) {
       amountCents: billingPlan.priceCents,
       payerEmail: parsed.data.email,
       baseUrl,
+      trialEndsAt: trialWindow.trialEndsAt,
     });
   } catch (err) {
     await prisma.tenant.delete({ where: { id: tenant.id } }).catch(() => null);
@@ -106,14 +119,19 @@ export async function POST(req: Request) {
   await prisma.tenant.update({
     where: { id: tenant.id },
     data: {
-      billingStatus: "pending",
+      billingStatus: "trialing",
       mpSubscriptionId: subscription.id ?? null,
       mpSubscriptionStatus: subscription.status ?? "pending",
     },
   });
 
   return NextResponse.json({
-    tenant: { id: tenant.id, slug: tenant.slug, name: tenant.name },
+    tenant: {
+      id: tenant.id,
+      slug: tenant.slug,
+      name: tenant.name,
+      trialEndsAt: tenant.trialEndsAt,
+    },
     billingConfigured: true,
     billingRedirectUrl: subscription.init_point ?? null,
   });

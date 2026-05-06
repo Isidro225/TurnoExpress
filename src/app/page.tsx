@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Reveal } from "./_components/Reveal";
 import { ThemeToggle } from "./_components/ThemeToggle";
 import {
+  BILLING_TRIAL_DAYS,
   type BillingPlanId,
   formatBillingPlanPrice,
 } from "@/lib/billing-plans";
@@ -915,6 +916,9 @@ function Pricing() {
             <div className="mb-6">
               <span className="text-4xl font-semibold tracking-tight">{plan.price}</span>
               <span className="text-sm text-zinc-500">{plan.priceNote}</span>
+              <p className="mt-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                {BILLING_TRIAL_DAYS} días de prueba gratis
+              </p>
             </div>
 
             <div className="mb-6">

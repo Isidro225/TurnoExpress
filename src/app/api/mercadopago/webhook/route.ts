@@ -78,7 +78,7 @@ export async function POST(req: Request) {
 
   // Si no existe localmente, buscamos por el preferenceId via external_reference (ver más abajo).
   // Para ello necesitamos consultar al MP el detalle del pago.
-  let tenant = localPayment?.tenant ?? null;
+  const tenant = localPayment?.tenant ?? null;
   if (!tenant) {
     // Sin tenant todavía no podemos llamar a MP (cada negocio tiene su access token).
     // Estrategia: traer pagos pendientes recientes y matchear por external_reference cuando llegue

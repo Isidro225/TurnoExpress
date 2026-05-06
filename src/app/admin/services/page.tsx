@@ -2,6 +2,7 @@ import Link from "next/link";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { deleteService } from "./actions";
+import { BusinessTypeIcon } from "@/app/_components/BusinessTypeIcon";
 import { PageHeader } from "../_components/PageHeader";
 import { EmptyState } from "../_components/EmptyState";
 import { ConfirmDeleteForm } from "../_components/ConfirmDeleteForm";
@@ -9,16 +10,21 @@ import {
   ClockIcon,
   CreditCardIcon,
   PlusIcon,
-  ScissorsIcon,
 } from "../_components/AdminIcons";
 
 export default async function ServicesPage() {
   const session = await auth();
   const tenantId = session!.user.tenantId!;
-  const services = await prisma.service.findMany({
-    where: { tenantId },
-    orderBy: { createdAt: "desc" },
-  });
+  const [tenant, services] = await Promise.all([
+    prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { businessType: true },
+    }),
+    prisma.service.findMany({
+      where: { tenantId },
+      orderBy: { createdAt: "desc" },
+    }),
+  ]);
 
   return (
     <div>
@@ -37,7 +43,7 @@ export default async function ServicesPage() {
       <div className="rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
         {services.length === 0 ? (
           <EmptyState
-            icon={<ScissorsIcon className="h-6 w-6" />}
+            icon={<BusinessTypeIcon businessType={tenant?.businessType} className="h-6 w-6" />}
             title="Todavía no creaste servicios"
             description="Agregá uno para que tus clientes puedan reservar."
             action={{ label: "Crear primer servicio", href: "/admin/services/new" }}
@@ -50,7 +56,7 @@ export default async function ServicesPage() {
                 className="flex flex-wrap items-center gap-4 px-5 py-4 transition hover:bg-zinc-50/60 dark:hover:bg-zinc-800/30"
               >
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-sky-100 to-emerald-100 text-sky-600 dark:from-sky-950/60 dark:to-emerald-950/60 dark:text-sky-300">
-                  <ScissorsIcon className="h-5 w-5" />
+                  <BusinessTypeIcon businessType={tenant?.businessType} className="h-5 w-5" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">

@@ -18,6 +18,7 @@ model Tenant {
   id            String   @id @default(cuid())
   slug          String   @unique
   name          String
+  businessType  String?
   description     String?
   logoUrl         String?
   primaryColor    String?  @default("#0ea5e9")
@@ -35,6 +36,8 @@ model Tenant {
   // Billing de TurnoExpress (abono mensual que paga el negocio a la plataforma)
   billingPlan          String  @default("pro")
   billingStatus        String  @default("pending")
+  trialStartedAt       DateTime?
+  trialEndsAt          DateTime?
   mpSubscriptionId     String? @unique
   mpSubscriptionStatus String?
 
@@ -49,6 +52,8 @@ model Tenant {
   payments     Payment[]
 
   @@index([slug])
+  @@index([businessType])
+  @@index([trialEndsAt])
 }
 
 // ──────────────────────────────────────────────────────────────────────────────

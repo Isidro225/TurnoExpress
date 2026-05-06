@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { BusinessTypeIcon } from "@/app/_components/BusinessTypeIcon";
 
 type StaffOption = { id: string; name: string };
 
@@ -19,6 +20,7 @@ type StaffAvailability = { staffId: string; staffName: string; slots: Slot[] };
 
 type Props = {
   tenantSlug: string;
+  businessType: string | null;
   mpEnabled: boolean;
   paymentBypassEnabled: boolean;
   services: ServiceForFlow[];
@@ -220,6 +222,7 @@ export function BookingFlow(props: Props) {
           >
             <ServiceCards
               services={props.services}
+              businessType={props.businessType}
               selectedServiceId={serviceId}
               onSelect={handleServiceChange}
             />
@@ -357,10 +360,12 @@ function BookingHeader({ activeStep }: { activeStep: number }) {
 
 function ServiceCards({
   services,
+  businessType,
   selectedServiceId,
   onSelect,
 }: {
   services: ServiceForFlow[];
+  businessType: string | null;
   selectedServiceId: string;
   onSelect: (serviceId: string) => void;
 }) {
@@ -383,11 +388,22 @@ function ServiceCards({
             }`}
           >
             <div className="flex items-start justify-between gap-4">
-              <div>
-                <h3 className="text-base font-semibold text-zinc-950">{service.name}</h3>
-                {service.description && (
-                  <p className="mt-1 text-sm leading-5 text-zinc-500">{service.description}</p>
-                )}
+              <div className="flex min-w-0 gap-3">
+                <span
+                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition ${
+                    selected
+                      ? "bg-white text-[color:var(--brand-strong)]"
+                      : "bg-[color:var(--brand-soft)] text-[color:var(--brand-strong)]"
+                  }`}
+                >
+                  <BusinessTypeIcon businessType={businessType} className="h-5 w-5" />
+                </span>
+                <div className="min-w-0">
+                  <h3 className="text-base font-semibold text-zinc-950">{service.name}</h3>
+                  {service.description && (
+                    <p className="mt-1 text-sm leading-5 text-zinc-500">{service.description}</p>
+                  )}
+                </div>
               </div>
               <p className="shrink-0 text-sm font-semibold text-zinc-950">
                 {formatPriceArs(service.priceCents)}

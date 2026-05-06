@@ -1,180 +1,118 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import Image from "next/image";
 import Link from "next/link";
-import {
-  BILLING_PLANS,
-  BILLING_PLAN_VALUES,
-  type BillingPlanId,
-  formatBillingPlanPrice,
-  normalizeBillingPlan,
-} from "@/lib/billing-plans";
+import { ThemeToggle } from "@/app/_components/ThemeToggle";
+import { normalizeBillingPlan } from "@/lib/billing-plans";
+import { SignupExperience } from "./SignupExperience";
 
-export default function SignupPage() {
-  const router = useRouter();
-  const [billingPlan, setBillingPlan] = useState<BillingPlanId>("pro");
-  const [form, setForm] = useState({
-    businessName: "",
-    slug: "",
-    ownerName: "",
-    email: "",
-    password: "",
-  });
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    setBillingPlan(normalizeBillingPlan(params.get("plan")));
-  }, []);
-
-  function update<K extends keyof typeof form>(key: K, value: string) {
-    setForm((prev) => ({ ...prev, [key]: value }));
-  }
-
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-    const res = await fetch("/api/signup", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, billingPlan }),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      setError(data.error ?? "No pudimos crear tu cuenta");
-      setLoading(false);
-      return;
-    }
-    const login = await signIn("credentials", {
-      email: form.email,
-      password: form.password,
-      redirect: false,
-    });
-    setLoading(false);
-    if (login?.error) {
-      setError("Cuenta creada pero falló el login. Probá iniciar sesión.");
-      return;
-    }
-    if (data.billingRedirectUrl) {
-      window.location.assign(data.billingRedirectUrl);
-      return;
-    }
-    router.push("/admin");
-    router.refresh();
-  }
-
-  const selectedPlan = BILLING_PLANS[billingPlan];
+export default async function SignupPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ plan?: string }>;
+}) {
+  const sp = await searchParams;
+  const initialPlan = normalizeBillingPlan(sp.plan);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-950 px-4 py-12">
-      <div className="w-full max-w-md rounded-xl border border-zinc-200 bg-white p-8 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-        <h1 className="text-2xl font-semibold mb-1">Crear mi turnera</h1>
-        <p className="text-sm text-zinc-500 mb-6">
-          Tu negocio va a estar online en minutos. Después activás tu plan con Mercado Pago.
+    <div className="relative min-h-screen bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
+      {/* Fondo decorativo (mismo lenguaje que el hero) */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[480px] bg-gradient-to-br from-sky-100/70 via-white to-emerald-100/50 dark:from-sky-900/30 dark:via-zinc-950 dark:to-emerald-900/20" />
+      <div
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[480px] bg-grid-pattern"
+        style={{
+          maskImage: "radial-gradient(ellipse at top, black 30%, transparent 75%)",
+          WebkitMaskImage: "radial-gradient(ellipse at top, black 30%, transparent 75%)",
+        }}
+      />
+      <div className="pointer-events-none absolute -left-24 top-12 -z-10 h-72 w-72 animate-blob rounded-full bg-sky-300/40 blur-3xl dark:bg-sky-700/30" />
+      <div
+        className="pointer-events-none absolute right-0 top-40 -z-10 h-72 w-72 animate-blob rounded-full bg-emerald-300/40 blur-3xl dark:bg-emerald-700/20"
+        style={{ animationDelay: "-4s" }}
+      />
+
+      <SignupNav />
+
+      <section className="mx-auto max-w-6xl px-6 pt-12 text-center sm:pt-16">
+        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+          Activá tu turnera en{" "}
+          <span className="bg-gradient-to-r from-sky-600 to-emerald-500 bg-clip-text text-transparent">
+            5 minutos
+          </span>
+        </h1>
+        <p className="mx-auto mt-3 max-w-2xl text-zinc-600 dark:text-zinc-400">
+          Completá los datos de tu negocio. Después conectás Mercado Pago y empezás a recibir
+          reservas con seña.
         </p>
-        <form onSubmit={onSubmit} className="space-y-4">
-          <div className="rounded-lg border border-sky-200 bg-sky-50 p-3 text-sm dark:border-sky-900 dark:bg-sky-950/40">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-sky-700 dark:text-sky-300">
-                  Plan elegido
-                </p>
-                <p className="mt-1 font-semibold text-zinc-950 dark:text-zinc-50">
-                  {selectedPlan.name}
-                </p>
-                <p className="text-xs text-zinc-600 dark:text-zinc-400">
-                  {selectedPlan.tagline}
-                </p>
-              </div>
-              <p className="shrink-0 text-right font-semibold text-sky-700 dark:text-sky-300">
-                {formatBillingPlanPrice(billingPlan)}
-                <span className="block text-[10px] font-normal text-zinc-500">/mes</span>
-              </p>
-            </div>
-            <select
-              value={billingPlan}
-              onChange={(e) => setBillingPlan(normalizeBillingPlan(e.target.value))}
-              className="mt-3 w-full rounded-md border border-sky-200 bg-white px-3 py-2 text-sm dark:border-sky-900 dark:bg-zinc-950"
-            >
-              {BILLING_PLAN_VALUES.map((plan) => (
-                <option key={plan} value={plan}>
-                  {BILLING_PLANS[plan].name} - {formatBillingPlanPrice(plan)}/mes
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm mb-1">Nombre del negocio</label>
-            <input
-              required
-              value={form.businessName}
-              onChange={(e) => update("businessName", e.target.value)}
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-800"
-            />
-          </div>
-          <div>
-            <label className="block text-sm mb-1">URL personalizada</label>
-            <div className="flex items-center rounded-md border border-zinc-300 dark:border-zinc-700">
-              <span className="px-3 text-sm text-zinc-500">turnoexpress.com/</span>
-              <input
-                required
-                value={form.slug}
-                onChange={(e) => update("slug", e.target.value.toLowerCase())}
-                placeholder="mi-negocio"
-                className="flex-1 rounded-r-md px-2 py-2 dark:bg-zinc-800"
-              />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm mb-1">Tu nombre</label>
-            <input
-              required
-              value={form.ownerName}
-              onChange={(e) => update("ownerName", e.target.value)}
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-800"
-            />
-          </div>
-          <div>
-            <label className="block text-sm mb-1">Email</label>
-            <input
-              type="email"
-              required
-              value={form.email}
-              onChange={(e) => update("email", e.target.value)}
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-800"
-            />
-          </div>
-          <div>
-            <label className="block text-sm mb-1">Contraseña</label>
-            <input
-              type="password"
-              required
-              minLength={8}
-              value={form.password}
-              onChange={(e) => update("password", e.target.value)}
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-800"
-            />
-          </div>
-          {error && <p className="text-sm text-red-600">{error}</p>}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-md bg-zinc-900 py-2 text-white hover:bg-zinc-700 disabled:opacity-60 dark:bg-white dark:text-zinc-900"
+      </section>
+
+      <SignupExperience initialPlan={initialPlan} />
+
+      <SignupFooter />
+    </div>
+  );
+}
+
+function SignupNav() {
+  return (
+    <header className="sticky top-0 z-30 border-b border-zinc-200 bg-white/80 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/80">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
+        <Link
+          href="/"
+          className="flex items-center transition-transform hover:scale-[1.02]"
+          aria-label="TurnoExpress"
+        >
+          <Image
+            src="/Icono.png"
+            alt=""
+            width={331}
+            height={277}
+            priority
+            className="h-10 w-auto sm:h-11"
+            style={{ width: "auto" }}
+          />
+          <span className="ml-2.5 inline-block text-xl font-bold tracking-tight sm:text-2xl">
+            <span className="text-zinc-900 dark:text-zinc-50">Turno</span>
+            <span className="bg-gradient-to-r from-sky-500 to-emerald-500 bg-clip-text text-transparent">
+              Express
+            </span>
+          </span>
+        </Link>
+        <nav className="flex items-center gap-1 text-sm">
+          <Link
+            href="/#planes"
+            className="hidden px-3 py-2 text-zinc-600 hover:text-zinc-900 sm:inline-block dark:text-zinc-400 dark:hover:text-zinc-100"
           >
-            {loading ? "Creando..." : "Crear cuenta"}
-          </button>
-        </form>
-        <p className="mt-6 text-center text-sm text-zinc-500">
-          ¿Ya tenés cuenta?{" "}
-          <Link href="/login" className="text-zinc-900 underline dark:text-zinc-100">
+            Ver planes
+          </Link>
+          <ThemeToggle />
+          <Link
+            href="/login"
+            className="ml-1 rounded-md border border-zinc-300 px-3 py-2 text-zinc-700 transition hover:border-sky-400 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+          >
             Iniciar sesión
           </Link>
-        </p>
+        </nav>
       </div>
-    </div>
+    </header>
+  );
+}
+
+function SignupFooter() {
+  return (
+    <footer className="border-t border-zinc-200 py-8 dark:border-zinc-800">
+      <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-6 text-sm text-zinc-500 sm:flex-row">
+        <p>© {new Date().getFullYear()} TurnoExpress</p>
+        <div className="flex items-center gap-4">
+          <Link href="/#planes" className="hover:text-zinc-900 dark:hover:text-zinc-100">
+            Planes
+          </Link>
+          <Link href="/#faq" className="hover:text-zinc-900 dark:hover:text-zinc-100">
+            Preguntas
+          </Link>
+          <Link href="/login" className="hover:text-zinc-900 dark:hover:text-zinc-100">
+            Iniciar sesión
+          </Link>
+        </div>
+      </div>
+    </footer>
   );
 }

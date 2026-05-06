@@ -12,9 +12,12 @@ export function NowLine({ startHour, endHour, hourHeight }: Props) {
   const [now, setNow] = useState<Date | null>(null);
 
   useEffect(() => {
-    setNow(new Date());
+    const initialId = window.setTimeout(() => setNow(new Date()), 0);
     const id = setInterval(() => setNow(new Date()), 60_000);
-    return () => clearInterval(id);
+    return () => {
+      window.clearTimeout(initialId);
+      clearInterval(id);
+    };
   }, []);
 
   if (!now) return null;

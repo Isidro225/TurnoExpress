@@ -1,35 +1,71 @@
 import Link from "next/link";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { getTenantPlanUsage } from "@/lib/plan-limits";
 import { deleteStaff } from "./actions";
 import { PageHeader } from "../_components/PageHeader";
 import { EmptyState } from "../_components/EmptyState";
 import { Avatar } from "../_components/Avatar";
 import { ConfirmDeleteForm } from "../_components/ConfirmDeleteForm";
+import { PlanUsageBar } from "../_components/PlanUsage";
 import { PlusIcon, UsersIcon } from "../_components/AdminIcons";
 
 export default async function StaffPage() {
   const session = await auth();
   const tenantId = session!.user.tenantId!;
-  const staff = await prisma.staff.findMany({
-    where: { tenantId },
-    orderBy: { createdAt: "desc" },
-  });
+  const [staff, usage] = await Promise.all([
+    prisma.staff.findMany({
+      where: { tenantId },
+      orderBy: { createdAt: "desc" },
+    }),
+    getTenantPlanUsage(tenantId),
+  ]);
+
+  const reached = usage.staff.reached;
 
   return (
     <div>
       <PageHeader
         title="Personal"
         description="Las personas que atienden. Cada una tiene su horario y servicios."
-        actions={[
-          {
-            kind: "primary",
-            label: "Agregar",
-            href: "/admin/staff/new",
-            icon: <PlusIcon />,
-          },
-        ]}
+        actions={
+          reached
+            ? [
+                {
+                  kind: "primary",
+                  label: "Subir de plan",
+                  href: "/admin/settings#plan",
+                  icon: <PlusIcon />,
+                },
+              ]
+            : [
+                {
+                  kind: "primary",
+                  label: "Agregar",
+                  href: "/admin/staff/new",
+                  icon: <PlusIcon />,
+                },
+              ]
+        }
       />
+
+      <div className="mb-4 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
+        <PlanUsageBar
+          label={`Profesionales (plan ${usage.planName})`}
+          used={usage.staff.used}
+          limit={usage.staff.limit}
+        />
+        {reached && (
+          <p className="mt-3 text-xs text-amber-700 dark:text-amber-400">
+            Llegaste al máximo de profesionales de tu plan.{" "}
+            <Link href="/admin/settings#plan" className="font-semibold underline">
+              Subí de plan
+            </Link>{" "}
+            para sumar más.
+          </p>
+        )}
+      </div>
+
       <div className="rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
         {staff.length === 0 ? (
           <EmptyState

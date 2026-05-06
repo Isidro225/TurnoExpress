@@ -159,61 +159,36 @@ export default async function TenantLayout({
     ["--brand-on-dark" as string]: palette.onDark,
     ["--brand-ring" as string]: palette.ring,
     ["--brand-shadow" as string]: palette.shadow,
-    background: `linear-gradient(180deg, ${palette.softStrong} 0%, ${palette.soft} 260px, #ffffff 560px)`,
+    backgroundColor: "#ffffff",
   };
 
   return (
     <div style={wrapperStyle} className="min-h-screen text-zinc-900">
       <header
-        className="relative overflow-hidden border-b border-[color:var(--brand-border)] bg-white"
+        className="flex w-full items-center justify-center"
+        style={{
+          backgroundImage:
+            "linear-gradient(180deg, var(--brand) 0%, var(--brand) 60%, #ffffff 100%)",
+        }}
       >
-        <div className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)_8rem] sm:grid-cols-[minmax(0,1fr)_12rem] md:grid-cols-[minmax(0,1fr)_15rem]">
-          <div
-            className="min-w-0 px-4 py-8 sm:px-6 sm:py-10"
+        {tenant.logoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element -- soportamos data URIs sin pasar por next/image
+          <img
+            src={tenant.logoUrl}
+            alt={tenant.name}
+            className="block max-h-40 max-w-[16rem] object-contain sm:max-h-56 sm:max-w-[24rem] md:max-h-64 md:max-w-[28rem]"
+          />
+        ) : (
+          <span
+            className="text-7xl font-semibold leading-none sm:text-8xl"
             style={{
-              backgroundImage:
-                "linear-gradient(90deg, var(--brand) 0%, var(--brand-soft) 72%, #ffffff 100%)",
+              color: "var(--brand-foreground)",
+              fontFamily: titleFontStack,
             }}
           >
-            <p
-              className="text-xs font-semibold uppercase"
-              style={{ color: "var(--brand-foreground)" }}
-            >
-              Reserva online
-            </p>
-            <Link
-              href={`/${tenant.slug}`}
-              className="mt-1 block text-2xl font-semibold tracking-normal sm:text-5xl"
-              style={{
-                color: "var(--brand-foreground)",
-                fontFamily: titleFontStack,
-              }}
-            >
-              {tenant.name}
-            </Link>
-          </div>
-
-          <div className="flex items-start justify-end bg-white px-4 py-8 sm:px-6 sm:py-10">
-            {tenant.logoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element -- soportamos data URIs sin pasar por next/image
-              <img
-                src={tenant.logoUrl}
-                alt={tenant.name}
-                className="max-h-21 max-w-full object-contain sm:max-h-28"
-              />
-            ) : (
-              <span
-                className="text-6xl font-semibold leading-none"
-                style={{
-                  color: "var(--brand)",
-                  fontFamily: titleFontStack,
-                }}
-              >
-                {tenant.name.slice(0, 1).toUpperCase()}
-              </span>
-            )}
-          </div>
-        </div>
+            {tenant.name.slice(0, 1).toUpperCase()}
+          </span>
+        )}
       </header>
 
       <main>{children}</main>
