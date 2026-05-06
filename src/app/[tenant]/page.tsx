@@ -53,6 +53,7 @@ export default async function TenantPublicPage({
       durationMin: s.durationMin,
       priceCents: s.priceCents,
       depositPct: s.depositPct ?? tenant.depositPct,
+      category: isNails ? s.category ?? null : null,
       staff: s.staff.map((ss) => ({ id: ss.staff.id, name: ss.staff.name })),
     }));
 
@@ -74,6 +75,7 @@ export default async function TenantPublicPage({
           services={servicesForFlow}
           priorServices={priorServices}
           designs={designs}
+          depositMinCents={tenant.depositMinCents}
           initialServiceId={sp.service ?? null}
         />
       )}

@@ -194,9 +194,10 @@ function getAppointmentMetrics(item: PositionedAppointment): {
 }
 
 function serviceLabel(appointment: AppointmentWithDetails): string {
-  return appointment.designName
-    ? `${appointment.service.name} + ${appointment.designName}`
-    : appointment.service.name;
+  const parts = [appointment.service.name];
+  if (appointment.secondaryServiceName) parts.push(appointment.secondaryServiceName);
+  if (appointment.designName) parts.push(appointment.designName);
+  return parts.join(" + ");
 }
 
 export default async function CalendarPage({

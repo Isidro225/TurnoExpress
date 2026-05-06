@@ -75,8 +75,21 @@ export default async function AppointmentDetailPage({
 
         <Card title="Servicio">
           <Row label="Servicio" value={appointment.service.name} />
+          {appointment.secondaryServiceName && (
+            <Row
+              label="Sumando"
+              value={
+                appointment.secondaryServicePriceCents != null
+                  ? `${appointment.secondaryServiceName} (+$${(appointment.secondaryServicePriceCents / 100).toLocaleString("es-AR")})`
+                  : appointment.secondaryServiceName
+              }
+            />
+          )}
           <Row label="Profesional" value={appointment.staff.name} />
-          <Row label="Duración" value={`${appointment.service.durationMin} min`} />
+          <Row
+            label="Duración"
+            value={`${appointment.service.durationMin + appointment.extraMinutes} min`}
+          />
           <Row
             label="Fecha"
             value={appointment.startsAt.toLocaleString("es-AR")}

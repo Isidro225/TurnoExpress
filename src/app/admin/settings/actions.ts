@@ -27,6 +27,7 @@ const settingsSchema = z.object({
   primaryColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional().nullable(),
   titleFont: z.enum(TENANT_TITLE_FONT_VALUES),
   depositPct: z.coerce.number().int().min(0).max(100),
+  depositMinArs: z.coerce.number().min(0).max(10_000_000),
   logoUrl: logoSchema,
 });
 
@@ -42,6 +43,7 @@ export async function updateSettings(formData: FormData) {
     primaryColor: formData.get("primaryColor") || null,
     titleFont: formData.get("titleFont") || "system",
     depositPct: formData.get("depositPct") ?? 30,
+    depositMinArs: formData.get("depositMinArs") ?? 0,
     logoUrl: formData.get("logoUrl") || null,
   });
 
@@ -54,6 +56,7 @@ export async function updateSettings(formData: FormData) {
       primaryColor: data.primaryColor ?? null,
       titleFont: data.titleFont,
       depositPct: data.depositPct,
+      depositMinCents: Math.round(data.depositMinArs * 100),
       logoUrl: data.logoUrl || null,
     },
   });

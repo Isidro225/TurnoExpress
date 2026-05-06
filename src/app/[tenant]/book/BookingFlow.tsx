@@ -12,6 +12,7 @@ type ServiceForFlow = {
   durationMin: number;
   priceCents: number;
   depositPct: number;
+  category: string | null;
   staff: StaffOption[];
 };
 
@@ -35,6 +36,12 @@ type PriorAge = "D15_21" | "D21_25" | "MONTH_PLUS";
 type ProcedureMode = "fresh" | "service" | "retiro";
 type HasPrior = "yes" | "no" | "";
 type DesignChoice = "none" | "with" | "";
+type SecondaryChoice = "none" | "with" | "";
+
+const CATEGORY_LABEL: Record<string, string> = {
+  hands: "manos",
+  feet: "pies",
+};
 
 type Props = {
   tenantSlug: string;
@@ -44,6 +51,7 @@ type Props = {
   services: ServiceForFlow[];
   priorServices: PriorServiceOption[];
   designs: DesignOption[];
+  depositMinCents: number;
   initialServiceId: string | null;
 };
 
@@ -100,10 +108,26 @@ export function BookingFlow(props: Props) {
   const [retiroOrService, setRetiroOrService] = useState<"service" | "retiro" | "">("");
   const [designChoice, setDesignChoice] = useState<DesignChoice>("");
   const [designId, setDesignId] = useState<string>("");
+  const [secondaryChoice, setSecondaryChoice] = useState<SecondaryChoice>("");
+  const [secondaryServiceId, setSecondaryServiceId] = useState<string>("");
 
   const service = useMemo(
     () => props.services.find((s) => s.id === serviceId) ?? null,
     [props.services, serviceId]
+  );
+  const oppositeCategory = useMemo<"hands" | "feet" | null>(() => {
+    if (!isNails || !service?.category) return null;
+    if (service.category === "hands") return "feet";
+    if (service.category === "feet") return "hands";
+    return null;
+  }, [isNails, service]);
+  const secondaryOptions = useMemo<ServiceForFlow[]>(() => {
+    if (!oppositeCategory) return [];
+    return props.services.filter((s) => s.category === oppositeCategory && s.id !== service?.id);
+  }, [props.services, oppositeCategory, service?.id]);
+  const secondaryService = useMemo(
+    () => props.services.find((s) => s.id === secondaryServiceId) ?? null,
+    [props.services, secondaryServiceId]
   );
   const priorService = useMemo(
     () => props.priorServices.find((p) => p.id === priorServiceId) ?? null,
@@ -113,7 +137,13 @@ export function BookingFlow(props: Props) {
     () => props.designs.find((d) => d.id === designId) ?? null,
     [props.designs, designId]
   );
-  const multiStaff = (service?.staff.length ?? 0) > 1;
+  const combinedStaff = useMemo<StaffOption[]>(() => {
+    if (!service) return [];
+    if (!secondaryService) return service.staff;
+    const allowed = new Set(secondaryService.staff.map((s) => s.id));
+    return service.staff.filter((s) => allowed.has(s.id));
+  }, [service, secondaryService]);
+  const multiStaff = combinedStaff.length > 1;
 
   // Modo de procedimiento (fresh / service / retiro) calculado desde las respuestas de uñas.
   const procedureMode: ProcedureMode | "" = useMemo(() => {
@@ -130,13 +160,25 @@ export function BookingFlow(props: Props) {
     let extra = 0;
     if (procedureMode === "retiro" && priorService) extra += priorService.removalMin;
     if (designChoice === "with" && design) extra += design.durationMin;
+    if (secondaryChoice === "with" && secondaryService) extra += secondaryService.durationMin;
     return extra;
-  }, [isNails, service, procedureMode, priorService, designChoice, design]);
+  }, [isNails, service, procedureMode, priorService, designChoice, design, secondaryChoice, secondaryService]);
 
   const totalPriceCents = useMemo(() => {
     if (!service) return 0;
-    return service.priceCents + (designChoice === "with" && design ? design.priceCents : 0);
-  }, [service, designChoice, design]);
+    return (
+      service.priceCents +
+      (designChoice === "with" && design ? design.priceCents : 0) +
+      (secondaryChoice === "with" && secondaryService ? secondaryService.priceCents : 0)
+    );
+  }, [service, designChoice, design, secondaryChoice, secondaryService]);
+
+  const secondaryAnswered = !isNails
+    ? true
+    : !service || !oppositeCategory || secondaryOptions.length === 0
+      ? true
+      : secondaryChoice === "none" ||
+        (secondaryChoice === "with" && !!secondaryService);
 
   const nailsIntroComplete = !isNails
     ? true
@@ -168,7 +210,7 @@ export function BookingFlow(props: Props) {
 
   useEffect(() => {
     if (!service) return;
-    if (!nailsIntroComplete || !designAnswered) return;
+    if (!nailsIntroComplete || !designAnswered || !secondaryAnswered) return;
 
     let cancelled = false;
     async function load() {
@@ -180,6 +222,9 @@ export function BookingFlow(props: Props) {
       });
       if (staffFilter) params.set("staff", staffFilter);
       if (extraMinutes > 0) params.set("extra", String(extraMinutes));
+      if (secondaryChoice === "with" && secondaryService) {
+        params.set("secondary", secondaryService.id);
+      }
 
       const res = await fetch(`/api/availability?${params}`);
       if (cancelled) return;
@@ -197,7 +242,7 @@ export function BookingFlow(props: Props) {
     return () => {
       cancelled = true;
     };
-  }, [props.tenantSlug, service, date, staffFilter, extraMinutes, nailsIntroComplete, designAnswered]);
+  }, [props.tenantSlug, service, date, staffFilter, extraMinutes, nailsIntroComplete, designAnswered, secondaryAnswered, secondaryChoice, secondaryService]);
 
   const selectedSlot = useMemo(() => {
     if (!slotKey) return null;
@@ -210,7 +255,11 @@ export function BookingFlow(props: Props) {
   }, [slotKey]);
 
   const depositPreview = service
-    ? Math.max(100, Math.round((totalPriceCents * service.depositPct) / 100))
+    ? Math.max(
+        100,
+        props.depositMinCents,
+        Math.round((totalPriceCents * service.depositPct) / 100)
+      )
     : 0;
   const selectedStaffName = selectedSlot
     ? availability.find((a) => a.staffId === selectedSlot.staffId)?.staffName ??
@@ -222,17 +271,18 @@ export function BookingFlow(props: Props) {
   const activeStep = useMemo(() => {
     if (isNails && !nailsIntroComplete) return 1;
     if (!service) return isNails ? 2 : 1;
-    if (isNails && !designAnswered) return 3;
+    if (isNails && (!secondaryAnswered || !designAnswered)) return 3;
     if (!selectedSlot) return isNails ? 4 : 2;
     return isNails ? 5 : 3;
-  }, [isNails, nailsIntroComplete, service, designAnswered, selectedSlot]);
+  }, [isNails, nailsIntroComplete, service, secondaryAnswered, designAnswered, selectedSlot]);
 
   const canSubmit =
     !!service &&
     !!selectedSlot &&
     !submitting &&
     nailsIntroComplete &&
-    designAnswered;
+    designAnswered &&
+    secondaryAnswered;
 
   function handleServiceChange(nextServiceId: string) {
     setServiceId(nextServiceId);
@@ -241,6 +291,8 @@ export function BookingFlow(props: Props) {
     setAvailability([]);
     setDesignChoice("");
     setDesignId("");
+    setSecondaryChoice("");
+    setSecondaryServiceId("");
     setError(null);
   }
 
@@ -299,6 +351,8 @@ export function BookingFlow(props: Props) {
               priorAge: hasPrior === "yes" ? priorAge : null,
               procedureMode,
               designId: designChoice === "with" ? designId : null,
+              secondaryServiceId:
+                secondaryChoice === "with" && secondaryService ? secondaryService.id : null,
             }
           : {}),
       }),
@@ -369,7 +423,7 @@ export function BookingFlow(props: Props) {
             subtitle={isNails ? "¿Qué te querés hacer?" : "Elegí qué querés reservar"}
             muted={isNails && !nailsIntroComplete}
             active={activeStep === (isNails ? 2 : 1)}
-            complete={!!service && (isNails ? designAnswered : true)}
+            complete={!!service && (isNails ? secondaryAnswered && designAnswered : true)}
           >
             {(!isNails || nailsIntroComplete) ? (
               <div className="space-y-5">
@@ -379,6 +433,28 @@ export function BookingFlow(props: Props) {
                   selectedServiceId={serviceId}
                   onSelect={handleServiceChange}
                 />
+                {isNails && service && oppositeCategory && secondaryOptions.length > 0 && (
+                  <SecondaryPicker
+                    primaryCategory={service.category as "hands" | "feet"}
+                    oppositeCategory={oppositeCategory}
+                    options={secondaryOptions}
+                    choice={secondaryChoice}
+                    selectedSecondaryId={secondaryServiceId}
+                    onChoiceChange={(value) => {
+                      setSecondaryChoice(value);
+                      if (value === "none") setSecondaryServiceId("");
+                      setStaffFilter("");
+                      setSlotKey("");
+                      setAvailability([]);
+                    }}
+                    onSecondaryChange={(id) => {
+                      setSecondaryServiceId(id);
+                      setStaffFilter("");
+                      setSlotKey("");
+                      setAvailability([]);
+                    }}
+                  />
+                )}
                 {isNails && service && (
                   <DesignPicker
                     designs={props.designs}
@@ -409,15 +485,20 @@ export function BookingFlow(props: Props) {
             step={isNails ? 3 : 2}
             title="Fecha y horario"
             subtitle="Encontrá un momento disponible"
-            muted={!service || (isNails && !designAnswered)}
+            muted={!service || (isNails && (!designAnswered || !secondaryAnswered))}
             active={activeStep === (isNails ? 3 : 2)}
             complete={!!selectedSlot}
           >
-            {service && (!isNails || designAnswered) ? (
+            {service && (!isNails || (designAnswered && secondaryAnswered)) ? (
               <div className="space-y-5">
+                {combinedStaff.length === 0 ? (
+                  <EmptyStep title="No hay profesionales para esta combinación">
+                    Probá con otro servicio o quitá el extra para ver disponibilidad.
+                  </EmptyStep>
+                ) : null}
                 {multiStaff && (
                   <StaffPicker
-                    staff={service.staff}
+                    staff={combinedStaff}
                     selectedStaffId={staffFilter}
                     onSelect={handleStaffFilterChange}
                   />
@@ -504,6 +585,7 @@ export function BookingFlow(props: Props) {
         <SummaryPanel
           service={service}
           design={designChoice === "with" ? design : null}
+          secondaryService={secondaryChoice === "with" ? secondaryService : null}
           totalPriceCents={totalPriceCents}
           selectedSlotStartsAt={selectedSlot?.startsAt ?? null}
           selectedStaffName={selectedStaffName}
@@ -782,6 +864,7 @@ function SlotSkeleton() {
 function SummaryPanel({
   service,
   design,
+  secondaryService,
   totalPriceCents,
   selectedSlotStartsAt,
   selectedStaffName,
@@ -793,6 +876,7 @@ function SummaryPanel({
 }: {
   service: ServiceForFlow | null;
   design: DesignOption | null;
+  secondaryService: ServiceForFlow | null;
   totalPriceCents: number;
   selectedSlotStartsAt: string | null;
   selectedStaffName: string | null;
@@ -808,6 +892,12 @@ function SummaryPanel({
         <p className="text-xs font-semibold uppercase text-zinc-500">Resumen</p>
         <div className="mt-4 divide-y divide-zinc-100 text-sm">
           <SummaryRow label="Servicio" value={service?.name ?? "Pendiente"} muted={!service} />
+          {secondaryService && (
+            <SummaryRow
+              label="Sumando"
+              value={`${secondaryService.name} (+${formatPriceArs(secondaryService.priceCents)})`}
+            />
+          )}
           <SummaryRow
             label="Profesional"
             value={selectedStaffName ?? (service ? "A definir" : "Pendiente")}
@@ -1144,6 +1234,63 @@ function DesignPicker({
               ))}
             </div>
           )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SecondaryPicker({
+  primaryCategory,
+  oppositeCategory,
+  options,
+  choice,
+  selectedSecondaryId,
+  onChoiceChange,
+  onSecondaryChange,
+}: {
+  primaryCategory: "hands" | "feet";
+  oppositeCategory: "hands" | "feet";
+  options: ServiceForFlow[];
+  choice: SecondaryChoice;
+  selectedSecondaryId: string;
+  onChoiceChange: (value: SecondaryChoice) => void;
+  onSecondaryChange: (id: string) => void;
+}) {
+  const oppositeLabel = CATEGORY_LABEL[oppositeCategory];
+  const primaryLabel = CATEGORY_LABEL[primaryCategory];
+
+  return (
+    <div className="space-y-3">
+      <p className="text-sm font-medium text-zinc-700">
+        ¿Querés sumar también {oppositeLabel}?
+      </p>
+      <div className="grid grid-cols-2 gap-2 sm:max-w-md">
+        <ChoiceButton selected={choice === "none"} onClick={() => onChoiceChange("none")}>
+          Solo {primaryLabel}
+        </ChoiceButton>
+        <ChoiceButton selected={choice === "with"} onClick={() => onChoiceChange("with")}>
+          Sumar {oppositeLabel}
+        </ChoiceButton>
+      </div>
+
+      {choice === "with" && (
+        <div className="grid gap-2 sm:grid-cols-2">
+          {options.map((s) => (
+            <ChoiceButton
+              key={s.id}
+              selected={selectedSecondaryId === s.id}
+              onClick={() => onSecondaryChange(s.id)}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <span className="block font-medium">{s.name}</span>
+                <span className="block text-sm font-semibold text-zinc-950">
+                  +{formatPriceArs(s.priceCents)}
+                </span>
+              </div>
+              <span className="block text-xs text-zinc-500">+{s.durationMin} min</span>
+            </ChoiceButton>
+          ))}
         </div>
       )}
     </div>

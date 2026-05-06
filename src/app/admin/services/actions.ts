@@ -12,6 +12,7 @@ const serviceSchema = z.object({
   durationMin: z.coerce.number().int().min(5).max(8 * 60),
   priceArs: z.coerce.number().min(0),
   depositPct: z.coerce.number().int().min(0).max(100).optional().nullable(),
+  category: z.enum(["hands", "feet"]).nullable().optional(),
   active: z.coerce.boolean().optional(),
 });
 
@@ -22,12 +23,14 @@ async function requireTenantId(): Promise<string> {
 }
 
 function parseFormData(form: FormData) {
+  const categoryRaw = form.get("category");
   const raw = {
     name: form.get("name"),
     description: form.get("description") || null,
     durationMin: form.get("durationMin"),
     priceArs: form.get("priceArs"),
     depositPct: form.get("depositPct") ? form.get("depositPct") : null,
+    category: categoryRaw === "hands" || categoryRaw === "feet" ? categoryRaw : null,
     active: form.get("active") === "on" || form.get("active") === "true",
   };
   return serviceSchema.parse(raw);
@@ -44,6 +47,7 @@ export async function createService(formData: FormData) {
       durationMin: data.durationMin,
       priceCents: Math.round(data.priceArs * 100),
       depositPct: data.depositPct ?? null,
+      category: data.category ?? null,
       active: data.active ?? true,
     },
   });
@@ -62,6 +66,7 @@ export async function updateService(id: string, formData: FormData) {
       durationMin: data.durationMin,
       priceCents: Math.round(data.priceArs * 100),
       depositPct: data.depositPct ?? null,
+      category: data.category ?? null,
       active: data.active ?? true,
     },
   });

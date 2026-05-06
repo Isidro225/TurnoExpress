@@ -8,6 +8,7 @@ const querySchema = z.object({
   service: z.string().min(1),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   staff: z.string().optional(),
+  secondary: z.string().optional(),
   extra: z.coerce.number().int().min(0).max(8 * 60).optional(),
 });
 
@@ -18,6 +19,7 @@ export async function GET(req: Request) {
     service: url.searchParams.get("service"),
     date: url.searchParams.get("date"),
     staff: url.searchParams.get("staff") ?? undefined,
+    secondary: url.searchParams.get("secondary") ?? undefined,
     extra: url.searchParams.get("extra") ?? undefined,
   });
   if (!parsed.success) {
@@ -40,6 +42,7 @@ export async function GET(req: Request) {
     serviceId: parsed.data.service,
     date,
     staffId: parsed.data.staff,
+    secondaryServiceId: parsed.data.secondary,
     extraMinutes: parsed.data.extra,
   });
 

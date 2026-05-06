@@ -64,6 +64,11 @@ export default async function ServicesPage() {
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="font-medium">{s.name}</p>
+                    {isNails && s.category && (
+                      <span className="rounded-full bg-fuchsia-50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-fuchsia-700 dark:bg-fuchsia-950/40 dark:text-fuchsia-300">
+                        {s.category === "hands" ? "Manos" : "Pies"}
+                      </span>
+                    )}
                     {!s.active && (
                       <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-zinc-500 dark:bg-zinc-800">
                         Inactivo

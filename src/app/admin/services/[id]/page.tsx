@@ -12,7 +12,10 @@ export default async function EditServicePage({
   const { id } = await params;
   const session = await auth();
   const tenantId = session!.user.tenantId!;
-  const service = await prisma.service.findFirst({ where: { id, tenantId } });
+  const [tenant, service] = await Promise.all([
+    prisma.tenant.findUnique({ where: { id: tenantId }, select: { businessType: true } }),
+    prisma.service.findFirst({ where: { id, tenantId } }),
+  ]);
   if (!service) notFound();
 
   return (
@@ -20,12 +23,14 @@ export default async function EditServicePage({
       <h1 className="text-2xl font-semibold mb-6">Editar servicio</h1>
       <ServiceForm
         action={updateService.bind(null, service.id)}
+        isNails={tenant?.businessType === "nails"}
         initial={{
           name: service.name,
           description: service.description,
           durationMin: service.durationMin,
           priceCents: service.priceCents,
           depositPct: service.depositPct,
+          category: service.category,
           active: service.active,
         }}
         submitLabel="Guardar"

@@ -20,6 +20,7 @@ const bookSchema = z.object({
   priorAge: z.enum(["D15_21", "D21_25", "MONTH_PLUS"]).nullable().optional(),
   procedureMode: z.enum(["fresh", "service", "retiro"]).nullable().optional(),
   designId: z.string().min(1).nullable().optional(),
+  secondaryServiceId: z.string().min(1).nullable().optional(),
 });
 
 export async function POST(req: Request) {
@@ -74,8 +75,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Profesional no disponible" }, { status: 404 });
   }
 
-  // Calculá los minutos extra del flujo de uñas (retiro + diseño). Se recomputa en el server
-  // a partir del modo y los minutos guardados en BD; nunca se confía en lo que llegó del cliente.
+  // Calculá los minutos extra del flujo de uñas (retiro + diseño + secundario). Se recomputa
+  // en el server a partir del modo y los minutos guardados en BD; nunca se confía en lo que
+  // llegó del cliente.
   const isNails = tenant.businessType === "nails";
   let extraMinutes = 0;
   let priorServiceName: string | null = null;
@@ -84,6 +86,10 @@ export async function POST(req: Request) {
   let designId: string | null = null;
   let designName: string | null = null;
   let designPriceCents: number | null = null;
+  let secondaryServiceId: string | null = null;
+  let secondaryServiceName: string | null = null;
+  let secondaryServicePriceCents: number | null = null;
+  let secondaryServiceDurationMin: number | null = null;
 
   if (isNails) {
     const requestedMode = parsed.data.procedureMode ?? "fresh";
@@ -126,6 +132,51 @@ export async function POST(req: Request) {
       designName = design.name;
       designPriceCents = design.priceCents;
       extraMinutes += design.durationMin;
+    }
+
+    const requestedSecondaryId = parsed.data.secondaryServiceId ?? null;
+    if (requestedSecondaryId) {
+      if (requestedSecondaryId === service.id) {
+        return NextResponse.json(
+          { error: "El servicio secundario debe ser distinto al principal." },
+          { status: 400 }
+        );
+      }
+      const secondary = await prisma.service.findFirst({
+        where: { id: requestedSecondaryId, tenantId: tenant.id, active: true },
+      });
+      if (!secondary) {
+        return NextResponse.json(
+          { error: "El servicio secundario no está disponible." },
+          { status: 400 }
+        );
+      }
+      const validCombo =
+        (service.category === "hands" && secondary.category === "feet") ||
+        (service.category === "feet" && secondary.category === "hands");
+      if (!validCombo) {
+        return NextResponse.json(
+          { error: "Sólo se puede combinar un servicio de manos con uno de pies." },
+          { status: 400 }
+        );
+      }
+      // El staff debe atender ambos servicios.
+      const secondaryStaffLink = await prisma.staffService.findUnique({
+        where: {
+          staffId_serviceId: { staffId: staffLink.staff.id, serviceId: secondary.id },
+        },
+      });
+      if (!secondaryStaffLink) {
+        return NextResponse.json(
+          { error: "Ese profesional no atiende la combinación elegida." },
+          { status: 400 }
+        );
+      }
+      secondaryServiceId = secondary.id;
+      secondaryServiceName = secondary.name;
+      secondaryServicePriceCents = secondary.priceCents;
+      secondaryServiceDurationMin = secondary.durationMin;
+      extraMinutes += secondary.durationMin;
     }
   }
 
@@ -170,11 +221,15 @@ export async function POST(req: Request) {
     throw err;
   }
 
-  const totalPriceCents = service.priceCents + (designPriceCents ?? 0);
+  const totalPriceCents =
+    service.priceCents + (designPriceCents ?? 0) + (secondaryServicePriceCents ?? 0);
   const depositPct = service.depositPct ?? tenant.depositPct;
+  const percentageDepositCents = Math.round((totalPriceCents * depositPct) / 100);
+  // Aplica la seña mínima fija configurada por el negocio (si la hay) y el piso técnico de MP.
   const requiredDepositCents = Math.max(
     100,
-    Math.round((totalPriceCents * depositPct) / 100)
+    tenant.depositMinCents,
+    percentageDepositCents
   );
   const depositCents = paymentBypassEnabled ? 0 : requiredDepositCents;
 
@@ -201,6 +256,10 @@ export async function POST(req: Request) {
       designId,
       designName,
       designPriceCents,
+      secondaryServiceId,
+      secondaryServiceName,
+      secondaryServicePriceCents,
+      secondaryServiceDurationMin,
       extraMinutes,
     },
   });

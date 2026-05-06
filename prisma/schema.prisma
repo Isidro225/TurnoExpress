@@ -32,6 +32,9 @@ model Tenant {
 
   // % de seña por defecto sobre el precio del servicio (override por servicio si hace falta)
   depositPct    Int      @default(30)
+  // Monto mínimo de seña en centavos. 0 = sin mínimo. Se aplica sobre el porcentaje:
+  // la seña final será max(porcentaje, depositMinCents, piso técnico de MP).
+  depositMinCents Int    @default(0)
 
   // Billing de TurnoExpress (abono mensual que paga el negocio a la plataforma)
   billingPlan          String  @default("pro")
@@ -156,12 +159,15 @@ model Service {
   durationMin Int
   priceCents  Int
   depositPct  Int?
+  // Solo se usa en negocios "nails": "hands" o "feet". Habilita combinar manos+pies en una reserva.
+  category    String?
   active      Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  staff        StaffService[]
-  appointments Appointment[]
+  staff                  StaffService[]
+  appointments           Appointment[] @relation("AppointmentService")
+  appointmentsSecondary  Appointment[] @relation("AppointmentSecondaryService")
 
   @@index([tenantId])
 }
@@ -250,7 +256,13 @@ model Appointment {
   tenantId      String
   tenant        Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   serviceId     String
-  service       Service           @relation(fields: [serviceId], references: [id])
+  service       Service           @relation("AppointmentService", fields: [serviceId], references: [id])
+  // Servicio secundario opcional: en negocios "nails" se permite combinar manos + pies en un turno.
+  secondaryServiceId          String?
+  secondaryService            Service? @relation("AppointmentSecondaryService", fields: [secondaryServiceId], references: [id], onDelete: SetNull)
+  secondaryServiceName        String?
+  secondaryServicePriceCents  Int?
+  secondaryServiceDurationMin Int?
   staffId       String
   staff         Staff             @relation(fields: [staffId], references: [id])
   startsAt      DateTime

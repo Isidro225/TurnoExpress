@@ -8,12 +8,14 @@ type Props = {
     durationMin: number;
     priceCents: number;
     depositPct: number | null;
+    category: string | null;
     active: boolean;
   };
+  isNails: boolean;
   submitLabel: string;
 };
 
-export function ServiceForm({ action, initial, submitLabel }: Props) {
+export function ServiceForm({ action, initial, isNails, submitLabel }: Props) {
   return (
     <form action={action} className="max-w-xl space-y-4">
       <Field label="Nombre">
@@ -32,6 +34,22 @@ export function ServiceForm({ action, initial, submitLabel }: Props) {
           className="w-full rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-800"
         />
       </Field>
+      {isNails && (
+        <Field label="Categoría">
+          <select
+            name="category"
+            defaultValue={initial?.category ?? ""}
+            className="w-full rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-800"
+          >
+            <option value="">Sin categoría</option>
+            <option value="hands">Manos</option>
+            <option value="feet">Pies</option>
+          </select>
+          <p className="mt-1 text-xs text-zinc-500">
+            Permite que las clientas combinen un servicio de manos con uno de pies en el mismo turno.
+          </p>
+        </Field>
+      )}
       <div className="grid gap-4 sm:grid-cols-3">
         <Field label="Duración (min)">
           <input

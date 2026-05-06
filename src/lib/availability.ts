@@ -32,7 +32,9 @@ export async function getAvailability(args: {
   serviceId: string;
   date: Date;
   staffId?: string;
-  // Minutos extra para el slot (retiro + diseño en nails). Se suman a service.durationMin.
+  // Servicio secundario opcional (combo manos+pies en nails). Restringe a staff que atienden ambos.
+  secondaryServiceId?: string;
+  // Minutos extra para el slot (retiro + diseño + secundario en nails). Se suman a service.durationMin.
   extraMinutes?: number;
 }): Promise<StaffSlots[]> {
   const extra = Math.max(0, args.extraMinutes ?? 0);
@@ -59,6 +61,17 @@ export async function getAvailability(args: {
   });
 
   if (!service) return [];
+
+  // Si hay servicio secundario, sólo mantenemos staff que también lo atienden.
+  let secondaryStaffIds: Set<string> | null = null;
+  if (args.secondaryServiceId && args.secondaryServiceId !== args.serviceId) {
+    const secondary = await prisma.service.findFirst({
+      where: { id: args.secondaryServiceId, tenantId: args.tenantId, active: true },
+      include: { staff: { select: { staffId: true } } },
+    });
+    if (!secondary) return [];
+    secondaryStaffIds = new Set(secondary.staff.map((s) => s.staffId));
+  }
   const weekday = getDay(args.date);
 
   const existingAppts = await prisma.appointment.findMany({
@@ -77,6 +90,7 @@ export async function getAvailability(args: {
   for (const ss of service.staff) {
     const staff = ss.staff;
     if (!staff.active) continue;
+    if (secondaryStaffIds && !secondaryStaffIds.has(staff.id)) continue;
 
     const blocks = staff.schedules.filter((s) => s.weekday === weekday);
     if (blocks.length === 0) continue;

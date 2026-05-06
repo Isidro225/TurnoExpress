@@ -347,6 +347,24 @@ export default async function SettingsPage({
               </span>
             </div>
           </Field>
+          <Field
+            label="Seña mínima (ARS)"
+            hint="Si el porcentaje da menos que este monto, se cobra este. Dejalo en 0 para no aplicar mínimo."
+          >
+            <div className="relative w-40">
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-zinc-500">
+                $
+              </span>
+              <input
+                name="depositMinArs"
+                type="number"
+                min={0}
+                step="1"
+                defaultValue={Math.round(tenant.depositMinCents / 100)}
+                className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 pl-7 text-sm shadow-sm transition focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20 dark:border-zinc-700 dark:bg-zinc-950"
+              />
+            </div>
+          </Field>
 
           <div className="rounded-lg border border-dashed border-zinc-300 bg-zinc-50 p-3 dark:border-zinc-700 dark:bg-zinc-950">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
