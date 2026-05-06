@@ -581,7 +581,7 @@ function ServiceCards({
                 </span>
                 <div className="min-w-0">
                   <h3 className="text-base font-semibold text-zinc-950">{service.name}</h3>
-                  {service.description && (
+                  {selected && service.description && (
                     <p className="mt-1 text-sm leading-5 text-zinc-500">{service.description}</p>
                   )}
                 </div>
