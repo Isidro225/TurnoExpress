@@ -15,6 +15,11 @@ const bookSchema = z.object({
   customerEmail: z.string().email(),
   customerPhone: z.string().max(40).optional(),
   notes: z.string().max(500).optional(),
+  // Campos específicos del flujo de uñas. Otros tipos de negocio los mandan vacíos/ausentes.
+  priorServiceId: z.string().min(1).nullable().optional(),
+  priorAge: z.enum(["D15_21", "D21_25", "MONTH_PLUS"]).nullable().optional(),
+  procedureMode: z.enum(["fresh", "service", "retiro"]).nullable().optional(),
+  designId: z.string().min(1).nullable().optional(),
 });
 
 export async function POST(req: Request) {
@@ -69,8 +74,51 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Profesional no disponible" }, { status: 404 });
   }
 
+  // Calculá los minutos extra del flujo de uñas (retiro + diseño). Se recomputa en el server
+  // a partir del modo y los minutos guardados en BD; nunca se confía en lo que llegó del cliente.
+  const isNails = tenant.businessType === "nails";
+  let extraMinutes = 0;
+  let priorServiceName: string | null = null;
+  let priorAge: string | null = null;
+  let procedureMode: string | null = isNails ? "fresh" : null;
+  let withDesign = false;
+
+  if (isNails) {
+    const requestedMode = parsed.data.procedureMode ?? "fresh";
+    const requestedPriorId = parsed.data.priorServiceId ?? null;
+    withDesign = !!parsed.data.withDesign;
+    procedureMode = requestedMode;
+    priorAge = parsed.data.priorAge ?? null;
+
+    if (requestedMode !== "fresh") {
+      if (!requestedPriorId) {
+        return NextResponse.json(
+          { error: "Falta indicar qué tenés hecho." },
+          { status: 400 }
+        );
+      }
+      const prior = await prisma.priorService.findFirst({
+        where: { id: requestedPriorId, tenantId: tenant.id, active: true },
+      });
+      if (!prior) {
+        return NextResponse.json(
+          { error: "El servicio previo seleccionado no está disponible." },
+          { status: 400 }
+        );
+      }
+      priorServiceName = prior.name;
+      if (requestedMode === "retiro") extraMinutes += prior.removalMin;
+    }
+
+    if (withDesign && service.designMin) {
+      extraMinutes += service.designMin;
+    }
+  }
+
   const startsAt = new Date(parsed.data.startsAt);
-  const endsAt = new Date(startsAt.getTime() + service.durationMin * 60_000);
+  const endsAt = new Date(
+    startsAt.getTime() + (service.durationMin + extraMinutes) * 60_000
+  );
 
   // Re-verificación de disponibilidad para evitar race conditions entre dos reservas paralelas.
   const conflicts = await prisma.appointment.findMany({
@@ -132,6 +180,11 @@ export async function POST(req: Request) {
       notes: parsed.data.notes,
       priceCents: service.priceCents,
       depositCents,
+      priorServiceName,
+      priorAge,
+      procedureMode,
+      withDesign,
+      extraMinutes,
     },
   });
 

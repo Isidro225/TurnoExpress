@@ -15,16 +15,34 @@ export default async function TenantPublicPage({
   const tenant = (await getTenantBySlug(slug))!;
   const paymentBypassEnabled = isBookingPaymentBypassEnabled();
 
-  const services = await prisma.service.findMany({
-    where: { tenantId: tenant.id, active: true },
-    orderBy: { name: "asc" },
-    include: {
-      staff: {
-        where: { staff: { active: true } },
-        include: { staff: { select: { id: true, name: true } } },
+  const isNails = tenant.businessType === "nails";
+
+  const [services, priorServices, designs] = await Promise.all([
+    prisma.service.findMany({
+      where: { tenantId: tenant.id, active: true },
+      orderBy: { name: "asc" },
+      include: {
+        staff: {
+          where: { staff: { active: true } },
+          include: { staff: { select: { id: true, name: true } } },
+        },
       },
-    },
-  });
+    }),
+    isNails
+      ? prisma.priorService.findMany({
+          where: { tenantId: tenant.id, active: true },
+          orderBy: { name: "asc" },
+          select: { id: true, name: true, removalMin: true },
+        })
+      : Promise.resolve([]),
+    isNails
+      ? prisma.design.findMany({
+          where: { tenantId: tenant.id, active: true },
+          orderBy: { name: "asc" },
+          select: { id: true, name: true, durationMin: true, priceCents: true },
+        })
+      : Promise.resolve([]),
+  ]);
 
   const servicesForFlow = services
     .filter((s) => s.staff.length > 0)
@@ -54,6 +72,8 @@ export default async function TenantPublicPage({
           mpEnabled={!!tenant.mpAccessToken}
           paymentBypassEnabled={paymentBypassEnabled}
           services={servicesForFlow}
+          priorServices={priorServices}
+          designs={designs}
           initialServiceId={sp.service ?? null}
         />
       )}

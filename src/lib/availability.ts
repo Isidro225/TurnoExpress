@@ -32,7 +32,10 @@ export async function getAvailability(args: {
   serviceId: string;
   date: Date;
   staffId?: string;
+  // Minutos extra para el slot (retiro + diseño en nails). Se suman a service.durationMin.
+  extraMinutes?: number;
 }): Promise<StaffSlots[]> {
+  const extra = Math.max(0, args.extraMinutes ?? 0);
   const service = await prisma.service.findFirst({
     where: { id: args.serviceId, tenantId: args.tenantId, active: true },
     include: {
@@ -79,15 +82,16 @@ export async function getAvailability(args: {
     if (blocks.length === 0) continue;
 
     const slots: Slot[] = [];
+    const slotDurationMin = service.durationMin + extra;
     for (const block of blocks) {
       // Cada bloque (startMin..endMin) lo recorremos en pasos de SLOT_GRANULARITY_MIN
       // y aceptamos un slot si entra entero antes de endMin y no choca con nada.
-      for (let m = block.startMin; m + service.durationMin <= block.endMin; m += SLOT_GRANULARITY_MIN) {
+      for (let m = block.startMin; m + slotDurationMin <= block.endMin; m += SLOT_GRANULARITY_MIN) {
         const startsAt = setMilliseconds(
           setSeconds(setMinutes(setHours(args.date, Math.floor(m / 60)), m % 60), 0),
           0
         );
-        const endsAt = addMinutes(startsAt, service.durationMin);
+        const endsAt = addMinutes(startsAt, slotDurationMin);
 
         if (!isAfter(startsAt, now)) continue;
 

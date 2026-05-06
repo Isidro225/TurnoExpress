@@ -15,8 +15,26 @@ type ServiceForFlow = {
   staff: StaffOption[];
 };
 
+type PriorServiceOption = {
+  id: string;
+  name: string;
+  removalMin: number;
+};
+
+type DesignOption = {
+  id: string;
+  name: string;
+  durationMin: number;
+  priceCents: number;
+};
+
 type Slot = { startsAt: string; endsAt: string };
 type StaffAvailability = { staffId: string; staffName: string; slots: Slot[] };
+
+type PriorAge = "D15_21" | "D21_25" | "MONTH_PLUS";
+type ProcedureMode = "fresh" | "service" | "retiro";
+type HasPrior = "yes" | "no" | "";
+type DesignChoice = "none" | "with" | "";
 
 type Props = {
   tenantSlug: string;
@@ -24,6 +42,8 @@ type Props = {
   mpEnabled: boolean;
   paymentBypassEnabled: boolean;
   services: ServiceForFlow[];
+  priorServices: PriorServiceOption[];
+  designs: DesignOption[];
   initialServiceId: string | null;
 };
 
@@ -68,14 +88,68 @@ function initials(name: string) {
 }
 
 export function BookingFlow(props: Props) {
+  const isNails = props.businessType === "nails";
+
   const initial = props.services.find((s) => s.id === props.initialServiceId) ?? null;
   const [serviceId, setServiceId] = useState<string>(initial?.id ?? "");
+
+  // Estado específico nails. En otros tipos de negocio queda inerte.
+  const [hasPrior, setHasPrior] = useState<HasPrior>("");
+  const [priorServiceId, setPriorServiceId] = useState<string>("");
+  const [priorAge, setPriorAge] = useState<PriorAge | "">("");
+  const [retiroOrService, setRetiroOrService] = useState<"service" | "retiro" | "">("");
+  const [designChoice, setDesignChoice] = useState<DesignChoice>("");
+  const [designId, setDesignId] = useState<string>("");
 
   const service = useMemo(
     () => props.services.find((s) => s.id === serviceId) ?? null,
     [props.services, serviceId]
   );
+  const priorService = useMemo(
+    () => props.priorServices.find((p) => p.id === priorServiceId) ?? null,
+    [props.priorServices, priorServiceId]
+  );
+  const design = useMemo(
+    () => props.designs.find((d) => d.id === designId) ?? null,
+    [props.designs, designId]
+  );
   const multiStaff = (service?.staff.length ?? 0) > 1;
+
+  // Modo de procedimiento (fresh / service / retiro) calculado desde las respuestas de uñas.
+  const procedureMode: ProcedureMode | "" = useMemo(() => {
+    if (!isNails) return "fresh";
+    if (hasPrior === "no") return "fresh";
+    if (hasPrior !== "yes" || !priorAge) return "";
+    if (priorAge === "D15_21") return "service";
+    if (priorAge === "MONTH_PLUS") return "retiro";
+    return retiroOrService || "";
+  }, [isNails, hasPrior, priorAge, retiroOrService]);
+
+  const extraMinutes = useMemo(() => {
+    if (!isNails || !service) return 0;
+    let extra = 0;
+    if (procedureMode === "retiro" && priorService) extra += priorService.removalMin;
+    if (designChoice === "with" && design) extra += design.durationMin;
+    return extra;
+  }, [isNails, service, procedureMode, priorService, designChoice, design]);
+
+  const totalPriceCents = useMemo(() => {
+    if (!service) return 0;
+    return service.priceCents + (designChoice === "with" && design ? design.priceCents : 0);
+  }, [service, designChoice, design]);
+
+  const nailsIntroComplete = !isNails
+    ? true
+    : hasPrior === "no"
+      ? true
+      : hasPrior === "yes" &&
+        !!priorService &&
+        !!priorAge &&
+        (priorAge !== "D21_25" || !!retiroOrService);
+
+  const designAnswered = !isNails
+    ? true
+    : designChoice === "none" || (designChoice === "with" && !!design);
 
   const [staffFilter, setStaffFilter] = useState<string>("");
   const [date, setDate] = useState<string>(todayISO());
@@ -94,6 +168,7 @@ export function BookingFlow(props: Props) {
 
   useEffect(() => {
     if (!service) return;
+    if (!nailsIntroComplete || !designAnswered) return;
 
     let cancelled = false;
     async function load() {
@@ -104,6 +179,7 @@ export function BookingFlow(props: Props) {
         date,
       });
       if (staffFilter) params.set("staff", staffFilter);
+      if (extraMinutes > 0) params.set("extra", String(extraMinutes));
 
       const res = await fetch(`/api/availability?${params}`);
       if (cancelled) return;
@@ -121,7 +197,7 @@ export function BookingFlow(props: Props) {
     return () => {
       cancelled = true;
     };
-  }, [props.tenantSlug, service, date, staffFilter]);
+  }, [props.tenantSlug, service, date, staffFilter, extraMinutes, nailsIntroComplete, designAnswered]);
 
   const selectedSlot = useMemo(() => {
     if (!slotKey) return null;
@@ -134,19 +210,55 @@ export function BookingFlow(props: Props) {
   }, [slotKey]);
 
   const depositPreview = service
-    ? Math.max(100, Math.round((service.priceCents * service.depositPct) / 100))
+    ? Math.max(100, Math.round((totalPriceCents * service.depositPct) / 100))
     : 0;
   const selectedStaffName = selectedSlot
     ? availability.find((a) => a.staffId === selectedSlot.staffId)?.staffName ??
       service?.staff.find((s) => s.id === selectedSlot.staffId)?.name ??
       "Profesional"
     : null;
-  const activeStep = selectedSlot ? 3 : service ? 2 : 1;
-  const canSubmit = !!service && !!selectedSlot && !submitting;
+
+  // activeStep: para uñas el primer paso es el "estado actual"; para otros tipos el primero es el servicio.
+  const activeStep = useMemo(() => {
+    if (isNails && !nailsIntroComplete) return 1;
+    if (!service) return isNails ? 2 : 1;
+    if (isNails && !designAnswered) return 3;
+    if (!selectedSlot) return isNails ? 4 : 2;
+    return isNails ? 5 : 3;
+  }, [isNails, nailsIntroComplete, service, designAnswered, selectedSlot]);
+
+  const canSubmit =
+    !!service &&
+    !!selectedSlot &&
+    !submitting &&
+    nailsIntroComplete &&
+    designAnswered;
 
   function handleServiceChange(nextServiceId: string) {
     setServiceId(nextServiceId);
     setStaffFilter("");
+    setSlotKey("");
+    setAvailability([]);
+    setDesignChoice("");
+    setDesignId("");
+    setError(null);
+  }
+
+  function handleHasPriorChange(value: HasPrior) {
+    setHasPrior(value);
+    if (value === "no") {
+      setPriorServiceId("");
+      setPriorAge("");
+      setRetiroOrService("");
+    }
+    setSlotKey("");
+    setAvailability([]);
+    setError(null);
+  }
+
+  function handlePriorAgeChange(value: PriorAge) {
+    setPriorAge(value);
+    if (value !== "D21_25") setRetiroOrService("");
     setSlotKey("");
     setAvailability([]);
     setError(null);
@@ -181,6 +293,14 @@ export function BookingFlow(props: Props) {
         staffId: selectedSlot.staffId,
         startsAt: selectedSlot.startsAt,
         ...customer,
+        ...(isNails
+          ? {
+              priorServiceId: hasPrior === "yes" ? priorServiceId : null,
+              priorAge: hasPrior === "yes" ? priorAge : null,
+              procedureMode,
+              designId: designChoice === "with" ? designId : null,
+            }
+          : {}),
       }),
     });
     const data = await res.json().catch(() => ({}));
@@ -209,34 +329,91 @@ export function BookingFlow(props: Props) {
 
   return (
     <form onSubmit={onSubmit} className="space-y-8">
-      <BookingHeader activeStep={activeStep} />
+      <BookingHeader activeStep={activeStep} isNails={isNails} />
 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
         <div className="space-y-9">
+          {isNails && (
+            <StepSection
+              step={1}
+              title="Estado actual"
+              subtitle="¿Venís con algo hecho? Nos ayuda a calcular el tiempo."
+              active={activeStep === 1}
+              complete={nailsIntroComplete}
+            >
+              <NailsIntakeBlock
+                priorServices={props.priorServices}
+                hasPrior={hasPrior}
+                priorServiceId={priorServiceId}
+                priorAge={priorAge}
+                retiroOrService={retiroOrService}
+                onHasPriorChange={handleHasPriorChange}
+                onPriorServiceChange={(id) => {
+                  setPriorServiceId(id);
+                  setSlotKey("");
+                  setAvailability([]);
+                }}
+                onPriorAgeChange={handlePriorAgeChange}
+                onRetiroOrServiceChange={(value) => {
+                  setRetiroOrService(value);
+                  setSlotKey("");
+                  setAvailability([]);
+                }}
+              />
+            </StepSection>
+          )}
+
           <StepSection
-            step={1}
+            step={isNails ? 2 : 1}
             title="Servicio"
-            subtitle="Elegí qué querés reservar"
-            active={activeStep === 1}
-            complete={activeStep > 1}
+            subtitle={isNails ? "¿Qué te querés hacer?" : "Elegí qué querés reservar"}
+            muted={isNails && !nailsIntroComplete}
+            active={activeStep === (isNails ? 2 : 1)}
+            complete={!!service && (isNails ? designAnswered : true)}
           >
-            <ServiceCards
-              services={props.services}
-              businessType={props.businessType}
-              selectedServiceId={serviceId}
-              onSelect={handleServiceChange}
-            />
+            {(!isNails || nailsIntroComplete) ? (
+              <div className="space-y-5">
+                <ServiceCards
+                  services={props.services}
+                  businessType={props.businessType}
+                  selectedServiceId={serviceId}
+                  onSelect={handleServiceChange}
+                />
+                {isNails && service && (
+                  <DesignPicker
+                    designs={props.designs}
+                    choice={designChoice}
+                    selectedDesignId={designId}
+                    onChoiceChange={(value) => {
+                      setDesignChoice(value);
+                      if (value === "none") setDesignId("");
+                      setSlotKey("");
+                      setAvailability([]);
+                    }}
+                    onDesignChange={(id) => {
+                      setDesignId(id);
+                      setSlotKey("");
+                      setAvailability([]);
+                    }}
+                  />
+                )}
+              </div>
+            ) : (
+              <EmptyStep title="Primero contanos cómo venís">
+                Respondé las preguntas de arriba para elegir el servicio.
+              </EmptyStep>
+            )}
           </StepSection>
 
           <StepSection
-            step={2}
+            step={isNails ? 3 : 2}
             title="Fecha y horario"
             subtitle="Encontrá un momento disponible"
-            muted={!service}
-            active={activeStep === 2}
-            complete={activeStep > 2}
+            muted={!service || (isNails && !designAnswered)}
+            active={activeStep === (isNails ? 3 : 2)}
+            complete={!!selectedSlot}
           >
-            {service ? (
+            {service && (!isNails || designAnswered) ? (
               <div className="space-y-5">
                 {multiStaff && (
                   <StaffPicker
@@ -267,18 +444,20 @@ export function BookingFlow(props: Props) {
                 />
               </div>
             ) : (
-              <EmptyStep title="Elegí un servicio">
-                Primero seleccioná qué querés reservar para ver la agenda disponible.
+              <EmptyStep title={isNails ? "Falta elegir el servicio" : "Elegí un servicio"}>
+                {isNails
+                  ? "Elegí el servicio y si va con o sin diseño para ver horarios."
+                  : "Primero seleccioná qué querés reservar para ver la agenda disponible."}
               </EmptyStep>
             )}
           </StepSection>
 
           <StepSection
-            step={3}
+            step={isNails ? 4 : 3}
             title="Tus datos"
             subtitle="Datos para confirmar el turno"
             muted={!selectedSlot}
-            active={activeStep === 3}
+            active={activeStep === (isNails ? 4 : 3)}
           >
             {service && selectedSlot ? (
               <div className="space-y-4">
@@ -324,6 +503,8 @@ export function BookingFlow(props: Props) {
 
         <SummaryPanel
           service={service}
+          design={designChoice === "with" ? design : null}
+          totalPriceCents={totalPriceCents}
           selectedSlotStartsAt={selectedSlot?.startsAt ?? null}
           selectedStaffName={selectedStaffName}
           depositPreview={depositPreview}
@@ -337,7 +518,7 @@ export function BookingFlow(props: Props) {
   );
 }
 
-function BookingHeader({ activeStep }: { activeStep: number }) {
+function BookingHeader({ activeStep, isNails }: { activeStep: number; isNails: boolean }) {
   return (
     <section
       className="overflow-hidden rounded-lg border border-[color:var(--brand-border)] bg-white/95 shadow-sm backdrop-blur"
@@ -351,7 +532,7 @@ function BookingHeader({ activeStep }: { activeStep: number }) {
             </p>
             <h2 className="mt-1 text-2xl font-semibold text-zinc-950">Armá tu reserva</h2>
           </div>
-          <StepProgress activeStep={activeStep} />
+          <StepProgress activeStep={activeStep} isNails={isNails} />
         </div>
       </div>
     </section>
@@ -600,6 +781,8 @@ function SlotSkeleton() {
 
 function SummaryPanel({
   service,
+  design,
+  totalPriceCents,
   selectedSlotStartsAt,
   selectedStaffName,
   depositPreview,
@@ -609,6 +792,8 @@ function SummaryPanel({
   error,
 }: {
   service: ServiceForFlow | null;
+  design: DesignOption | null;
+  totalPriceCents: number;
   selectedSlotStartsAt: string | null;
   selectedStaffName: string | null;
   depositPreview: number;
@@ -633,9 +818,12 @@ function SummaryPanel({
             value={selectedSlotStartsAt ? fmtDateTime(selectedSlotStartsAt) : "Pendiente"}
             muted={!selectedSlotStartsAt}
           />
+          {design && (
+            <SummaryRow label="Diseño" value={`${design.name} (+${formatPriceArs(design.priceCents)})`} />
+          )}
           <SummaryRow
             label="Total"
-            value={service ? formatPriceArs(service.priceCents) : "Pendiente"}
+            value={service ? formatPriceArs(totalPriceCents) : "Pendiente"}
             muted={!service}
           />
           <SummaryRow
@@ -690,11 +878,13 @@ function SummaryRow({ label, value, muted = false }: { label: string; value: str
   );
 }
 
-function StepProgress({ activeStep }: { activeStep: number }) {
-  const steps = ["Servicio", "Horario", "Datos"];
+function StepProgress({ activeStep, isNails }: { activeStep: number; isNails: boolean }) {
+  const steps = isNails
+    ? ["Estado", "Servicio", "Horario", "Datos"]
+    : ["Servicio", "Horario", "Datos"];
 
   return (
-    <div className="grid grid-cols-3 gap-2 text-xs sm:min-w-80">
+    <div className={`grid gap-2 text-xs sm:min-w-80 ${isNails ? "grid-cols-4" : "grid-cols-3"}`}>
       {steps.map((label, index) => {
         const step = index + 1;
         const active = step === activeStep;
@@ -797,5 +987,190 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <span className="mb-1.5 block font-medium text-zinc-700">{label}</span>
       {children}
     </label>
+  );
+}
+
+function NailsIntakeBlock({
+  priorServices,
+  hasPrior,
+  priorServiceId,
+  priorAge,
+  retiroOrService,
+  onHasPriorChange,
+  onPriorServiceChange,
+  onPriorAgeChange,
+  onRetiroOrServiceChange,
+}: {
+  priorServices: PriorServiceOption[];
+  hasPrior: HasPrior;
+  priorServiceId: string;
+  priorAge: PriorAge | "";
+  retiroOrService: "service" | "retiro" | "";
+  onHasPriorChange: (value: HasPrior) => void;
+  onPriorServiceChange: (id: string) => void;
+  onPriorAgeChange: (value: PriorAge) => void;
+  onRetiroOrServiceChange: (value: "service" | "retiro") => void;
+}) {
+  return (
+    <div className="space-y-5">
+      <div className="space-y-2">
+        <p className="text-sm font-medium text-zinc-700">¿Ya tenés algo hecho?</p>
+        <div className="grid grid-cols-2 gap-2 sm:max-w-md">
+          <ChoiceButton selected={hasPrior === "no"} onClick={() => onHasPriorChange("no")}>
+            No, vengo sin nada
+          </ChoiceButton>
+          <ChoiceButton selected={hasPrior === "yes"} onClick={() => onHasPriorChange("yes")}>
+            Sí, tengo algo
+          </ChoiceButton>
+        </div>
+      </div>
+
+      {hasPrior === "yes" && (
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-zinc-700">¿Qué tenés hecho?</p>
+          {priorServices.length === 0 ? (
+            <EmptyStep title="Sin opciones cargadas">
+              El negocio todavía no configuró servicios previos. Avisanos por WhatsApp.
+            </EmptyStep>
+          ) : (
+            <div className="grid gap-2 sm:grid-cols-2">
+              {priorServices.map((p) => (
+                <ChoiceButton
+                  key={p.id}
+                  selected={priorServiceId === p.id}
+                  onClick={() => onPriorServiceChange(p.id)}
+                >
+                  <span className="block font-medium">{p.name}</span>
+                  <span className="block text-xs text-zinc-500">retiro {p.removalMin} min</span>
+                </ChoiceButton>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {hasPrior === "yes" && priorServiceId && (
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-zinc-700">¿Hace cuánto te lo hiciste?</p>
+          <div className="grid gap-2 sm:grid-cols-3">
+            <ChoiceButton selected={priorAge === "D15_21"} onClick={() => onPriorAgeChange("D15_21")}>
+              <span className="block font-medium">15 a 21 días</span>
+              <span className="block text-xs text-zinc-500">va service</span>
+            </ChoiceButton>
+            <ChoiceButton selected={priorAge === "D21_25"} onClick={() => onPriorAgeChange("D21_25")}>
+              <span className="block font-medium">21 a 25 días</span>
+              <span className="block text-xs text-zinc-500">depende del estado</span>
+            </ChoiceButton>
+            <ChoiceButton selected={priorAge === "MONTH_PLUS"} onClick={() => onPriorAgeChange("MONTH_PLUS")}>
+              <span className="block font-medium">Más de un mes</span>
+              <span className="block text-xs text-zinc-500">va retiro</span>
+            </ChoiceButton>
+          </div>
+        </div>
+      )}
+
+      {hasPrior === "yes" && priorAge === "D21_25" && (
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-zinc-700">¿Cómo lo querés hacer?</p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <ChoiceButton
+              selected={retiroOrService === "service"}
+              onClick={() => onRetiroOrServiceChange("service")}
+            >
+              <span className="block font-medium">Service</span>
+              <span className="block text-xs text-zinc-500">si está en buen estado</span>
+            </ChoiceButton>
+            <ChoiceButton
+              selected={retiroOrService === "retiro"}
+              onClick={() => onRetiroOrServiceChange("retiro")}
+            >
+              <span className="block font-medium">Retiro</span>
+              <span className="block text-xs text-zinc-500">retira y arma de cero</span>
+            </ChoiceButton>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DesignPicker({
+  designs,
+  choice,
+  selectedDesignId,
+  onChoiceChange,
+  onDesignChange,
+}: {
+  designs: DesignOption[];
+  choice: DesignChoice;
+  selectedDesignId: string;
+  onChoiceChange: (value: DesignChoice) => void;
+  onDesignChange: (id: string) => void;
+}) {
+  return (
+    <div className="space-y-3">
+      <p className="text-sm font-medium text-zinc-700">¿Con o sin diseño?</p>
+      <div className="grid grid-cols-2 gap-2 sm:max-w-md">
+        <ChoiceButton selected={choice === "none"} onClick={() => onChoiceChange("none")}>
+          Sin diseño
+        </ChoiceButton>
+        <ChoiceButton selected={choice === "with"} onClick={() => onChoiceChange("with")}>
+          Con diseño
+        </ChoiceButton>
+      </div>
+
+      {choice === "with" && (
+        <div className="space-y-2">
+          {designs.length === 0 ? (
+            <EmptyStep title="Sin diseños cargados">
+              El negocio todavía no cargó diseños. Avisanos por WhatsApp si querés uno.
+            </EmptyStep>
+          ) : (
+            <div className="grid gap-2 sm:grid-cols-2">
+              {designs.map((d) => (
+                <ChoiceButton
+                  key={d.id}
+                  selected={selectedDesignId === d.id}
+                  onClick={() => onDesignChange(d.id)}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="block font-medium">{d.name}</span>
+                    <span className="block text-sm font-semibold text-zinc-950">
+                      +${(d.priceCents / 100).toLocaleString("es-AR")}
+                    </span>
+                  </div>
+                  <span className="block text-xs text-zinc-500">+{d.durationMin} min</span>
+                </ChoiceButton>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ChoiceButton({
+  selected,
+  onClick,
+  children,
+}: {
+  selected: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={selected}
+      onClick={onClick}
+      className={`rounded-lg border px-3 py-2.5 text-left text-sm transition hover:border-[color:var(--brand)] ${
+        selected
+          ? "border-[color:var(--brand)] bg-[color:var(--brand-soft)] text-zinc-950"
+          : "border-zinc-200 bg-white text-zinc-700"
+      }`}
+    >
+      {children}
+    </button>
   );
 }

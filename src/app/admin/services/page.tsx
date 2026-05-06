@@ -11,6 +11,7 @@ import {
   CreditCardIcon,
   PlusIcon,
 } from "../_components/AdminIcons";
+import { ServicesTabs } from "./_components/ServicesTabs";
 
 export default async function ServicesPage() {
   const session = await auth();
@@ -25,9 +26,11 @@ export default async function ServicesPage() {
       orderBy: { createdAt: "desc" },
     }),
   ]);
+  const isNails = tenant?.businessType === "nails";
 
   return (
     <div>
+      <ServicesTabs active="services" showNails={isNails} />
       <PageHeader
         title="Servicios"
         description="Lo que ofrecés y cuánto cobrás. Tus clientes los ven al reservar."

@@ -45,11 +45,13 @@ model Tenant {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  users        User[]
-  staff        Staff[]
-  services     Service[]
-  appointments Appointment[]
-  payments     Payment[]
+  users         User[]
+  staff         Staff[]
+  services      Service[]
+  priorServices PriorService[]
+  designs       Design[]
+  appointments  Appointment[]
+  payments      Payment[]
 
   @@index([slug])
   @@index([businessType])
@@ -164,6 +166,40 @@ model Service {
   @@index([tenantId])
 }
 
+// Solo se usa en negocios tipo "nails": catálogo de diseños que el cliente puede sumar
+// al servicio. Cada diseño tiene su propio tiempo y precio.
+model Design {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name        String
+  durationMin Int
+  priceCents  Int
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  appointments Appointment[]
+
+  @@index([tenantId])
+}
+
+// Solo se usa en negocios tipo "nails": lista de servicios que un cliente puede declarar
+// "ya tener hechos" al reservar (puede no coincidir con los servicios que el negocio ofrece).
+// `removalMin` es el tiempo que lleva retirar ese servicio cuando aplica modo retiro.
+model PriorService {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name        String
+  removalMin  Int
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId])
+}
+
 model StaffService {
   staffId   String
   serviceId String
@@ -226,6 +262,15 @@ model Appointment {
   notes         String?
   priceCents    Int
   depositCents  Int
+  // Snapshots específicos del flujo de uñas. Quedan nulos para otros tipos de negocio.
+  priorServiceName String?
+  priorAge         String? // "D15_21" | "D21_25" | "MONTH_PLUS"
+  procedureMode    String? // "fresh" | "service" | "retiro"
+  designId         String?
+  design           Design?  @relation(fields: [designId], references: [id], onDelete: SetNull)
+  designName       String?
+  designPriceCents Int?
+  extraMinutes     Int     @default(0)
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
 
