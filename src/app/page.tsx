@@ -1,6 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
+import { CountUp } from "./_components/CountUp";
+import { PhoneMockup } from "./_components/PhoneMockup";
 import { Reveal } from "./_components/Reveal";
+import { RotatingHeadline } from "./_components/RotatingHeadline";
+import { ScrollFocusManager } from "./_components/ScrollFocusManager";
 import { ThemeToggle } from "./_components/ThemeToggle";
 import {
   BILLING_TRIAL_DAYS,
@@ -11,19 +15,24 @@ import {
 export default function Home() {
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
+      <ScrollFocusManager />
       <Nav />
-      <Hero />
-      <TrustStrip />
-      <Features />
-      <AdminPreview />
-      <Industries />
-      <HowItWorks />
-      <Pricing />
-      <Faq />
-      <FinalCta />
+      <FocusSection><Hero /></FocusSection>
+      <FocusSection><TrustStrip /></FocusSection>
+      <FocusSection><Features /></FocusSection>
+      <FocusSection><AdminPreview /></FocusSection>
+      <FocusSection><Industries /></FocusSection>
+      <FocusSection><HowItWorks /></FocusSection>
+      <FocusSection><Pricing /></FocusSection>
+      <FocusSection><Faq /></FocusSection>
+      <FocusSection><FinalCta /></FocusSection>
       <Footer />
     </div>
   );
+}
+
+function FocusSection({ children }: { children: React.ReactNode }) {
+  return <div data-scroll-focus>{children}</div>;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -143,9 +152,7 @@ function Hero() {
             style={{ animationDelay: "120ms" }}
           >
             Tu sistema de turnos online,{" "}
-            <span className="bg-gradient-to-r from-sky-600 to-emerald-500 bg-clip-text text-transparent">
-              listo en minutos
-            </span>
+            <RotatingHeadline />
             .
           </h1>
           <p
@@ -204,186 +211,29 @@ function Bullet({ children }: { children: React.ReactNode }) {
   );
 }
 
-function PhoneMockup() {
-  const days = [
-    { day: "Lun", date: "12" },
-    { day: "Mar", date: "13", active: true },
-    { day: "Mié", date: "14" },
-    { day: "Jue", date: "15" },
-  ];
-  const slots = ["10:00", "10:45", "11:30", "14:00", "15:15", "16:00"];
-
-  return (
-    <div className="relative mx-auto w-full max-w-lg">
-      <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-[0_28px_80px_rgba(15,23,42,0.18)] dark:border-zinc-800 dark:bg-zinc-950">
-        {/* Browser chrome — refuerza que es una página web */}
-        <div className="flex items-center gap-2 border-b border-zinc-200 bg-zinc-100 px-3 py-2.5 dark:border-zinc-800 dark:bg-zinc-900">
-          <div className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-rose-400" />
-            <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
-            <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
-          </div>
-          <div className="ml-2 flex flex-1 items-center gap-1.5 rounded-md bg-white px-2.5 py-1 text-[11px] text-zinc-500 dark:bg-zinc-950 dark:text-zinc-400">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3 w-3 text-emerald-500">
-              <path d="M5 12V8a7 7 0 0 1 14 0v4" strokeLinecap="round" />
-              <rect x="4" y="12" width="16" height="9" rx="2" />
-            </svg>
-            <span className="truncate font-mono">turnoexpress.com/juan</span>
-          </div>
-        </div>
-        <div className="bg-zinc-950 px-5 py-4 text-white">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white">
-                <Image
-                  src="/Icono.png"
-                  alt=""
-                  width={331}
-                  height={277}
-                  className="h-8 w-auto"
-                />
-              </div>
-              <div>
-                <p className="text-sm font-semibold leading-tight">Peluquería Juan</p>
-                <p className="text-xs text-zinc-400">turnoexpress.com/juan</p>
-              </div>
-            </div>
-            <span className="rounded-full bg-emerald-400/15 px-3 py-1 text-xs font-medium text-emerald-300">
-              Abierto
-            </span>
-          </div>
-          <div className="mt-5 grid grid-cols-3 gap-2 text-xs">
-            <div className="rounded-lg bg-white/10 p-3">
-              <p className="text-zinc-400">Próximo</p>
-              <p className="mt-1 font-semibold">11:30</p>
-            </div>
-            <div className="rounded-lg bg-white/10 p-3">
-              <p className="text-zinc-400">Seña</p>
-              <p className="mt-1 font-semibold">$3.600</p>
-            </div>
-            <div className="rounded-lg bg-sky-500 p-3">
-              <p className="text-sky-100">Slots</p>
-              <p className="mt-1 font-semibold">12 libres</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid gap-4 p-5 sm:grid-cols-[0.9fr_1.1fr]">
-          <div className="space-y-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
-                Fecha
-              </p>
-              <div className="mt-2 grid grid-cols-4 gap-2">
-                {days.map((d) => (
-                  <div
-                    key={d.date}
-                    className={`rounded-xl border px-2 py-3 text-center ${
-                      d.active
-                        ? "border-sky-500 bg-sky-500 text-white shadow-md shadow-sky-500/25"
-                        : "border-zinc-200 bg-zinc-50 text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300"
-                    }`}
-                  >
-                    <p className="text-[10px] font-medium uppercase">{d.day}</p>
-                    <p className="text-lg font-semibold leading-none">{d.date}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs text-zinc-500">Profesional</p>
-                  <p className="text-sm font-semibold">Sofia Ramos</p>
-                </div>
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-amber-100 text-sm font-semibold text-amber-700">
-                  SR
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
-                Servicio
-              </p>
-              <div className="mt-2 space-y-2">
-                <div className="rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-950">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-medium">Corte de pelo</p>
-                      <p className="text-xs text-zinc-500">30 min · $8.000</p>
-                    </div>
-                    <span className="h-3 w-3 rounded-full border border-zinc-300" />
-                  </div>
-                </div>
-                <div className="rounded-xl border-2 border-sky-500 bg-sky-50 p-3 shadow-sm shadow-sky-500/10 dark:bg-sky-950/40">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-semibold">Corte + barba</p>
-                      <p className="text-xs text-zinc-600 dark:text-zinc-300">
-                        45 min · $12.000
-                      </p>
-                    </div>
-                    <CheckIcon className="h-5 w-5 text-sky-600" />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
-                Horario
-              </p>
-              <div className="mt-2 grid grid-cols-3 gap-2">
-                {slots.map((slot) => (
-                  <div
-                    key={slot}
-                    className={`rounded-lg border py-2 text-center text-xs font-medium ${
-                      slot === "11:30"
-                        ? "border-sky-500 bg-sky-500 text-white"
-                        : "border-zinc-200 bg-white text-zinc-700 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300"
-                    }`}
-                  >
-                    {slot}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="rounded-xl bg-zinc-950 p-3 text-white">
-              <div className="flex items-center justify-between gap-3 text-xs">
-                <span className="text-zinc-400">Total</span>
-                <span className="font-semibold">$12.000</span>
-              </div>
-              <div className="mt-3 rounded-lg bg-sky-500 py-2 text-center text-xs font-semibold">
-                Confirmar turno
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Trust strip — barra de cifras / promesas debajo del hero
 // ─────────────────────────────────────────────────────────────────────────────
 
 function TrustStrip() {
-  const stats = [
-    { value: "5 min", label: "para tener tu turnera lista" },
-    { value: "0%", label: "de comisión sobre tus señas" },
-    { value: "24/7", label: "tus clientes reservan cuando quieran" },
+  const stats: { key: string; value: React.ReactNode; label: string }[] = [
+    {
+      key: "min",
+      value: (
+        <>
+          <CountUp to={5} /> min
+        </>
+      ),
+      label: "para tener tu turnera lista",
+    },
+    { key: "fee", value: "0%", label: "de comisión sobre tus señas" },
+    { key: "always", value: "24/7", label: "tus clientes reservan cuando quieran" },
   ];
   return (
     <section className="border-y border-zinc-200 bg-white/60 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-900/40">
       <div className="mx-auto grid max-w-6xl gap-8 px-6 py-10 sm:grid-cols-3">
         {stats.map((s, i) => (
-          <Reveal key={s.value} delay={i * 80}>
+          <Reveal key={s.key} delay={i * 80}>
             <div className="text-center sm:text-left">
               <p className="bg-gradient-to-r from-sky-600 to-emerald-500 bg-clip-text text-3xl font-bold tracking-tight text-transparent md:text-4xl">
                 {s.value}
@@ -538,17 +388,23 @@ function AdminPreview() {
               <div className="grid grid-cols-3 gap-3 p-4 sm:p-5">
                 <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900">
                   <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">Hoy</p>
-                  <p className="mt-1 text-lg font-bold">12 turnos</p>
+                  <p className="mt-1 text-lg font-bold">
+                    <CountUp to={12} /> turnos
+                  </p>
                   <p className="text-[10px] text-emerald-600">+18% vs. ayer</p>
                 </div>
                 <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900">
                   <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">Ingresos</p>
-                  <p className="mt-1 text-lg font-bold">$148K</p>
+                  <p className="mt-1 text-lg font-bold">
+                    $<CountUp to={148} />K
+                  </p>
                   <p className="text-[10px] text-zinc-500">esta semana</p>
                 </div>
                 <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900">
                   <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">Ocupación</p>
-                  <p className="mt-1 text-lg font-bold">82%</p>
+                  <p className="mt-1 text-lg font-bold">
+                    <CountUp to={82} />%
+                  </p>
                   <p className="text-[10px] text-emerald-600">▲ 4 pts</p>
                 </div>
               </div>
@@ -593,10 +449,11 @@ function AdminPreview() {
                       .map((a, i) => (
                         <div
                           key={i}
-                          className={`absolute inset-x-1 overflow-hidden rounded-md px-1.5 py-1 text-[9px] leading-tight text-white shadow-sm ${a.color}`}
+                          className={`calendar-appt absolute inset-x-1 overflow-hidden rounded-md px-1.5 py-1 text-[9px] leading-tight text-white shadow-sm ${a.color}`}
                           style={{
                             top: `${(a.start - dayStart) * 32}px`,
                             height: `${(a.end - a.start) * 32}px`,
+                            animationDelay: `${appts.indexOf(a) * 70}ms`,
                           }}
                         >
                           <p className="truncate font-semibold">{a.name}</p>
@@ -650,7 +507,10 @@ function HowItWorks() {
           {steps.map((s, i) => (
             <Reveal key={s.n} delay={i * 120}>
               <div className="group relative">
-                <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-full bg-sky-500 text-lg font-semibold text-white shadow-md shadow-sky-500/30 transition group-hover:scale-110 group-hover:shadow-sky-500/50">
+                <div
+                  className="step-num-ping mb-3 inline-flex h-10 w-10 items-center justify-center rounded-full bg-sky-500 text-lg font-semibold text-white shadow-md shadow-sky-500/30 transition group-hover:scale-110 group-hover:shadow-sky-500/50"
+                  style={{ ["--ping-delay" as string]: `${i * 120 + 600}ms` }}
+                >
                   {s.n}
                 </div>
                 <h3 className="text-lg font-semibold">{s.title}</h3>
@@ -1164,7 +1024,9 @@ function Footer() {
   return (
     <footer className="border-t border-zinc-200 py-8 dark:border-zinc-800">
       <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-6 text-sm text-zinc-500 sm:flex-row">
-        <p>© {new Date().getFullYear()} TurnoExpress</p>
+        <p>
+          © {new Date().getFullYear()} TurnoExpress. Todos los derechos reservados.
+        </p>
         <div className="flex items-center gap-4">
           <a href="#planes" className="hover:text-zinc-900 dark:hover:text-zinc-100">
             Planes

@@ -8,7 +8,14 @@
       "Bash(mkdir \"c:/Users/isidr/Desktop/TurnoExpress/src/app/admin/customers/[id]\")",
       "Bash(node -e ' *)",
       "Bash(curl -s \"http://localhost:3000/api/admin/customers/search?q=Ana\" -o /tmp/resp.json -w \"%{http_code}\\\\n\")",
-      "Read(//tmp/**)"
+      "Read(//tmp/**)",
+      "Bash(netstat -ano)",
+      "Bash(findstr :3000)",
+      "Bash(curl -s http://localhost:3000/)",
+      "Bash(findstr /C:\"Confirmar turno\" /C:\"Turno confirmado\" /C:\"animate-cursor-blink\")",
+      "Bash(curl -s http://localhost:3000/ -o C:\\\\Users\\\\isidr\\\\AppData\\\\Local\\\\Temp\\\\turno_home.html)",
+      "Bash(powershell -Command \"Select-String -Path C:\\\\Users\\\\isidr\\\\AppData\\\\Local\\\\Temp\\\\turno_home.html -Pattern 'Turno confirmado','animate-cursor-blink','Confirmar turno','onMouseEnter'\")",
+      "PowerShell($html = \\(Invoke-WebRequest -Uri \"http://localhost:3000/\" -UseBasicParsing\\).Content; \"Turno confirmado: $\\($html -match 'Turno confirmado'\\)\"; \"animate-cursor-blink: $\\($html -match 'animate-cursor-blink'\\)\"; \"Confirmar turno: $\\($html -match 'Confirmar turno'\\)\")"
     ],
     "additionalDirectories": [
       "c:\\Users\\isidr\\Desktop\\TurnoExpress\\src\\app\\admin\\customers"
