@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { CustomerAutocomplete } from "./CustomerAutocomplete";
 
 export type ServiceOption = {
   id: string;
@@ -133,6 +134,12 @@ export function AppointmentForm({
 
   const [date, setDate] = useState(defaultDate);
   const [time, setTime] = useState(defaultTime);
+  const [customer, setCustomer] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    notes: "",
+  });
 
   const startsAtIso = useMemo(() => {
     if (!date || !time) return "";
@@ -406,42 +413,7 @@ export function AppointmentForm({
       </Section>
 
       <Section title="Cliente">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Nombre">
-            <input
-              name="customerName"
-              required
-              maxLength={120}
-              placeholder="Juan Pérez"
-              className={SELECT_CLS}
-            />
-          </Field>
-          <Field label="Email">
-            <input
-              name="customerEmail"
-              type="email"
-              required
-              placeholder="cliente@email.com"
-              className={SELECT_CLS}
-            />
-          </Field>
-          <Field label="Teléfono (opcional)">
-            <input
-              name="customerPhone"
-              maxLength={40}
-              placeholder="+54 11 ..."
-              className={SELECT_CLS}
-            />
-          </Field>
-          <Field label="Notas (opcional)">
-            <input
-              name="notes"
-              maxLength={500}
-              placeholder="Pidió producto X"
-              className={SELECT_CLS}
-            />
-          </Field>
-        </div>
+        <CustomerAutocomplete value={customer} onChange={setCustomer} />
         <p className="text-xs text-zinc-500">
           Los turnos creados desde el admin quedan{" "}
           <span className="font-semibold">confirmados</span> automáticamente, sin cobro de seña.

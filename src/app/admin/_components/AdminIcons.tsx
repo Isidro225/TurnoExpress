@@ -61,6 +61,15 @@ export function UsersIcon({ className = "h-4 w-4" }: IconProps) {
   );
 }
 
+export function UserIcon({ className = "h-4 w-4" }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" {...baseStrokeProps} className={className}>
+      <circle cx="12" cy="8" r="3.5" />
+      <path d="M5 20a7 7 0 0 1 14 0" />
+    </svg>
+  );
+}
+
 export function SettingsIcon({ className = "h-4 w-4" }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" {...baseStrokeProps} className={className}>

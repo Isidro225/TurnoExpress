@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
@@ -27,6 +28,7 @@ export default async function AppointmentDetailPage({
       service: true,
       staff: true,
       payments: { orderBy: { createdAt: "desc" } },
+      customer: { select: { id: true, name: true } },
     },
   });
   if (!appointment) notFound();
@@ -71,6 +73,16 @@ export default async function AppointmentDetailPage({
           <Row label="Email" value={appointment.customerEmail} />
           <Row label="Teléfono" value={appointment.customerPhone ?? "—"} />
           {appointment.notes && <Row label="Notas" value={appointment.notes} />}
+          {appointment.customer && (
+            <p className="pt-2 text-xs">
+              <Link
+                href={`/admin/customers/${appointment.customer.id}`}
+                className="font-medium text-sky-600 hover:underline dark:text-sky-400"
+              >
+                Ver historial de {appointment.customer.name} →
+              </Link>
+            </p>
+          )}
         </Card>
 
         <Card title="Servicio">

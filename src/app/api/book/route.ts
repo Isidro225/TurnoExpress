@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { createDepositPreference } from "@/lib/mercadopago";
 import { isBookingPaymentBypassEnabled } from "@/lib/booking-payment";
 import { assertCanCreateAppointment, PlanLimitError } from "@/lib/plan-limits";
+import { findOrCreateCustomer } from "@/lib/customers";
 
 const bookSchema = z.object({
   tenantSlug: z.string().min(1),
@@ -13,7 +14,7 @@ const bookSchema = z.object({
   startsAt: z.string().datetime(),
   customerName: z.string().min(1).max(120),
   customerEmail: z.string().email(),
-  customerPhone: z.string().max(40).optional(),
+  customerPhone: z.string().min(1).max(40),
   notes: z.string().max(500).optional(),
   // Campos específicos del flujo de uñas. Otros tipos de negocio los mandan vacíos/ausentes.
   priorServiceId: z.string().min(1).nullable().optional(),
@@ -236,9 +237,17 @@ export async function POST(req: Request) {
   const baseUrl =
     process.env.NEXT_PUBLIC_BASE_URL ?? new URL(req.url).origin;
 
+  const customer = await findOrCreateCustomer({
+    tenantId: tenant.id,
+    rawPhone: parsed.data.customerPhone,
+    name: parsed.data.customerName,
+    email: parsed.data.customerEmail,
+  });
+
   const appointment = await prisma.appointment.create({
     data: {
       tenantId: tenant.id,
+      customerId: customer?.id ?? null,
       serviceId: service.id,
       staffId: staffLink.staff.id,
       startsAt,

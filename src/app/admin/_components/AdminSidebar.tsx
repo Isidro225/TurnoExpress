@@ -14,6 +14,7 @@ import {
   LogoutIcon,
   MenuIcon,
   SettingsIcon,
+  UserIcon,
   UsersIcon,
 } from "./AdminIcons";
 
@@ -28,6 +29,7 @@ const NAV_ITEMS: { href: string; label: string; icon: React.ReactNode }[] = [
   { href: "/admin", label: "Resumen", icon: <DashboardIcon /> },
   { href: "/admin/calendar", label: "Calendario", icon: <CalendarIcon /> },
   { href: "/admin/appointments", label: "Turnos", icon: <ClipboardIcon /> },
+  { href: "/admin/customers", label: "Clientes", icon: <UserIcon /> },
   { href: "/admin/services", label: "Servicios", icon: null },
   { href: "/admin/staff", label: "Personal", icon: <UsersIcon /> },
   { href: "/admin/settings", label: "Configuración", icon: <SettingsIcon /> },

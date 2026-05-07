@@ -59,6 +59,7 @@ model Tenant {
   designs       Design[]
   appointments  Appointment[]
   payments      Payment[]
+  customers     Customer[]
 
   @@index([slug])
   @@index([businessType])
@@ -259,6 +260,11 @@ model Appointment {
   id            String            @id @default(cuid())
   tenantId      String
   tenant        Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  // Cliente persistente (agrupa por teléfono normalizado dentro del tenant). Opcional
+  // porque turnos sin teléfono no se pueden agrupar; los snapshots customerName/Email/Phone
+  // siguen siendo la fuente de verdad para visualización.
+  customerId    String?
+  customer      Customer?         @relation(fields: [customerId], references: [id], onDelete: SetNull)
   serviceId     String
   service       Service           @relation("AppointmentService", fields: [serviceId], references: [id])
   // Servicio secundario opcional: en negocios "nails" se permite combinar manos + pies en un turno.
@@ -295,6 +301,27 @@ model Appointment {
   @@index([tenantId, startsAt])
   @@index([staffId, startsAt])
   @@index([status])
+  @@index([customerId])
+}
+
+// Cliente persistente del negocio. Agrupa los turnos por teléfono normalizado
+// (sólo dígitos) dentro del tenant. Los datos snapshot del turno (customerName/Email/Phone)
+// se conservan para no alterar registros históricos si la ficha del cliente cambia.
+model Customer {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  phone     String   // Normalizado: sólo dígitos. Ver lib/customers.ts.
+  name      String
+  email     String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  appointments Appointment[]
+
+  @@unique([tenantId, phone])
+  @@index([tenantId])
 }
 
 enum PaymentStatus {

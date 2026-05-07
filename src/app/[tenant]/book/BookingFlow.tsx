@@ -560,7 +560,8 @@ export function BookingFlow(props: Props) {
                   />
                 </div>
                 <input
-                  placeholder="Teléfono (opcional)"
+                  required
+                  placeholder="Teléfono"
                   value={customer.customerPhone}
                   onChange={(e) => setCustomer({ ...customer, customerPhone: e.target.value })}
                   className={INPUT_CLS}

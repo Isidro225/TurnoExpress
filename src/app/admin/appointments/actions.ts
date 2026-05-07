@@ -7,6 +7,7 @@ import { areIntervalsOverlapping } from "date-fns";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { assertCanCreateAppointment } from "@/lib/plan-limits";
+import { findOrCreateCustomer } from "@/lib/customers";
 
 const ALLOWED_STATUSES = ["CONFIRMED", "COMPLETED", "NO_SHOW", "CANCELLED"] as const;
 
@@ -122,7 +123,7 @@ const createSchema = z.object({
   startsAt: z.string().datetime(),
   customerName: z.string().min(1).max(120),
   customerEmail: z.string().email(),
-  customerPhone: z.string().max(40).optional().nullable(),
+  customerPhone: z.string().min(1).max(40),
   notes: z.string().max(500).optional().nullable(),
   // Específicos del flujo de uñas. Otros tipos los mandan vacíos/null.
   secondaryServiceId: z.string().min(1).optional().nullable(),
@@ -141,7 +142,7 @@ export async function createAppointment(formData: FormData) {
     startsAt: formData.get("startsAt"),
     customerName: formData.get("customerName"),
     customerEmail: formData.get("customerEmail"),
-    customerPhone: formData.get("customerPhone") || null,
+    customerPhone: formData.get("customerPhone"),
     notes: formData.get("notes") || null,
     secondaryServiceId: formData.get("secondaryServiceId") || null,
     designId: formData.get("designId") || null,
@@ -272,9 +273,17 @@ export async function createAppointment(formData: FormData) {
   const totalPriceCents =
     service.priceCents + (designPriceCents ?? 0) + (secondaryServicePriceCents ?? 0);
 
+  const customer = await findOrCreateCustomer({
+    tenantId,
+    rawPhone: parsed.data.customerPhone,
+    name: parsed.data.customerName,
+    email: parsed.data.customerEmail,
+  });
+
   const created = await prisma.appointment.create({
     data: {
       tenantId,
+      customerId: customer?.id ?? null,
       serviceId: service.id,
       staffId: parsed.data.staffId,
       startsAt,
@@ -282,7 +291,7 @@ export async function createAppointment(formData: FormData) {
       status: "CONFIRMED",
       customerName: parsed.data.customerName,
       customerEmail: parsed.data.customerEmail,
-      customerPhone: parsed.data.customerPhone ?? null,
+      customerPhone: parsed.data.customerPhone,
       notes: parsed.data.notes ?? null,
       priceCents: totalPriceCents,
       depositCents: 0,
