@@ -13,6 +13,7 @@ const DAY_TEXT_COLUMNS = [2, 4, 6, 8, 10, 12, 14];
 const MONTHS = {
   "Abril  2026": { year: 2026, month: 4 },
   "Mayo  2026": { year: 2026, month: 5 },
+  "Junio  2026": { year: 2026, month: 6 },
 };
 
 const DEFAULT_TENANT_SLUG = "bby-nails";
@@ -221,6 +222,10 @@ function cleanPhone(value) {
   }
 
   return raw.replace(/[^\d+]/g, "") || null;
+}
+
+function normalizePhone(value) {
+  return String(value ?? "").replace(/\D/g, "");
 }
 
 function buildContacts(rows) {
@@ -585,7 +590,7 @@ async function resolveDb({ tenantSlug, staffName }) {
 async function writeAppointments(context, appointments, { limit }) {
   const { prisma, tenant, staff, servicesByName, designsByName } = context;
   const toWrite = limit ? appointments.slice(0, limit) : appointments;
-  const results = { created: 0, duplicates: 0, missingService: 0 };
+  const results = { created: 0, duplicates: 0, missingService: 0, customersLinked: 0 };
   const now = new Date();
 
   for (const appointment of toWrite) {
@@ -596,6 +601,24 @@ async function writeAppointments(context, appointments, { limit }) {
       continue;
     }
 
+    const phone = normalizePhone(appointment.customerPhone);
+    const customer = phone
+      ? await prisma.customer.upsert({
+          where: { tenantId_phone: { tenantId: tenant.id, phone } },
+          create: {
+            tenantId: tenant.id,
+            phone,
+            name: appointment.customerName,
+            email: appointment.customerEmail,
+          },
+          update: {
+            name: appointment.customerName,
+            email: appointment.customerEmail,
+          },
+          select: { id: true },
+        })
+      : null;
+
     const duplicate = await prisma.appointment.findFirst({
       where: {
         tenantId: tenant.id,
@@ -603,9 +626,16 @@ async function writeAppointments(context, appointments, { limit }) {
         startsAt: appointment.startsAt,
         customerName: appointment.customerName,
       },
-      select: { id: true },
+      select: { id: true, customerId: true },
     });
     if (duplicate) {
+      if (customer && !duplicate.customerId) {
+        await prisma.appointment.update({
+          where: { id: duplicate.id },
+          data: { customerId: customer.id },
+        });
+        results.customersLinked += 1;
+      }
       results.duplicates += 1;
       continue;
     }
@@ -615,9 +645,16 @@ async function writeAppointments(context, appointments, { limit }) {
         tenantId: tenant.id,
         notes: { contains: appointment.sourceKey },
       },
-      select: { id: true },
+      select: { id: true, customerId: true },
     });
     if (exactSource) {
+      if (customer && !exactSource.customerId) {
+        await prisma.appointment.update({
+          where: { id: exactSource.id },
+          data: { customerId: customer.id },
+        });
+        results.customersLinked += 1;
+      }
       results.duplicates += 1;
       continue;
     }
@@ -632,6 +669,7 @@ async function writeAppointments(context, appointments, { limit }) {
     await prisma.appointment.create({
       data: {
         tenantId: tenant.id,
+        customerId: customer?.id ?? null,
         staffId: staff.id,
         serviceId: service.id,
         startsAt: appointment.startsAt,

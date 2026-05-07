@@ -126,7 +126,7 @@ export function PhoneMockup() {
               </div>
             </div>
 
-            <div key={activeStep} className="mt-3 animate-step-reveal">
+            <div key={activeStep} className="mt-3 h-[9.5rem] animate-step-reveal">
               {activeStep === 1 && (
                 <div className="space-y-2">
                   {SERVICES.map((s, i) => {

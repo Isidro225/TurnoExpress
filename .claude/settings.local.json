@@ -15,7 +15,8 @@
       "Bash(findstr /C:\"Confirmar turno\" /C:\"Turno confirmado\" /C:\"animate-cursor-blink\")",
       "Bash(curl -s http://localhost:3000/ -o C:\\\\Users\\\\isidr\\\\AppData\\\\Local\\\\Temp\\\\turno_home.html)",
       "Bash(powershell -Command \"Select-String -Path C:\\\\Users\\\\isidr\\\\AppData\\\\Local\\\\Temp\\\\turno_home.html -Pattern 'Turno confirmado','animate-cursor-blink','Confirmar turno','onMouseEnter'\")",
-      "PowerShell($html = \\(Invoke-WebRequest -Uri \"http://localhost:3000/\" -UseBasicParsing\\).Content; \"Turno confirmado: $\\($html -match 'Turno confirmado'\\)\"; \"animate-cursor-blink: $\\($html -match 'animate-cursor-blink'\\)\"; \"Confirmar turno: $\\($html -match 'Confirmar turno'\\)\")"
+      "PowerShell($html = \\(Invoke-WebRequest -Uri \"http://localhost:3000/\" -UseBasicParsing\\).Content; \"Turno confirmado: $\\($html -match 'Turno confirmado'\\)\"; \"animate-cursor-blink: $\\($html -match 'animate-cursor-blink'\\)\"; \"Confirmar turno: $\\($html -match 'Confirmar turno'\\)\")",
+      "Bash(echo \"exit=$?\")"
     ],
     "additionalDirectories": [
       "c:\\Users\\isidr\\Desktop\\TurnoExpress\\src\\app\\admin\\customers"

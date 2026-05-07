@@ -51,6 +51,17 @@ export default async function AppointmentDetailPage({
   // El cliente reinterpreta al render (mismo Date, distinta zona).
   const defaultDate = appointment.startsAt.toISOString().slice(0, 10);
   const defaultTime = appointment.startsAt.toISOString().slice(11, 16);
+  const designDetail = appointment.designName
+    ? appointment.designPriceCents != null
+      ? `${appointment.designName} (+$${(appointment.designPriceCents / 100).toLocaleString("es-AR")})`
+      : appointment.designName
+    : "Sin diseño";
+  const retiroDetail =
+    appointment.procedureMode === "retiro"
+      ? appointment.priorServiceName
+        ? `Sí, ${appointment.priorServiceName}`
+        : "Sí"
+      : "Sin retiro";
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-6">
@@ -97,6 +108,8 @@ export default async function AppointmentDetailPage({
               }
             />
           )}
+          <Row label="Diseño" value={designDetail} />
+          <Row label="Retiro" value={retiroDetail} />
           <Row label="Profesional" value={appointment.staff.name} />
           <Row
             label="Duración"

@@ -153,7 +153,6 @@ function Hero() {
           >
             Tu sistema de turnos online,{" "}
             <RotatingHeadline />
-            .
           </h1>
           <p
             className="animate-fade-in-up text-lg text-zinc-600 dark:text-zinc-400"
@@ -718,14 +717,12 @@ const PLANS: Plan[] = [
     features: [
       "Profesionales ilimitados",
       "Multi-sucursal",
-      "Dominio propio (tunegocio.com)",
       "Onboarding 1 a 1",
       "API para integraciones",
       "Soporte dedicado",
     ],
     pros: [
       "Sin límites de equipo ni de turnos",
-      "Tu dominio propio, sin /tu-negocio",
       "Te ayudamos a migrar y arrancar",
     ],
     cons: [
@@ -897,7 +894,6 @@ const COMPARISON_ROWS: { label: string; basic: string | boolean; pro: string | b
   { label: "Recordatorios por email", basic: false, pro: true, premium: true },
   { label: "Estadísticas y reportes", basic: false, pro: true, premium: true },
   { label: "Multi-sucursal", basic: false, pro: false, premium: true },
-  { label: "Dominio propio (tunegocio.com)", basic: false, pro: false, premium: true },
   { label: "API para integraciones", basic: false, pro: false, premium: true },
   { label: "Onboarding 1 a 1", basic: false, pro: false, premium: true },
   { label: "Soporte", basic: "Email", pro: "Prioritario", premium: "Dedicado" },
