@@ -12,8 +12,8 @@ import {
 import { es } from "date-fns/locale";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { PageHeader } from "../_components/PageHeader";
 import { NowLine } from "../_components/NowLine";
+import { DateJumpButton } from "./DateJumpButton";
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -21,25 +21,37 @@ import {
   ClockIcon,
 } from "../_components/AdminIcons";
 
-const START_HOUR = 7;
-const END_HOUR = 23;
 const SLOT_MINUTES = 30;
 const SLOT_HEIGHT = 34;
-const TOTAL_MINUTES = (END_HOUR - START_HOUR) * 60;
-const TOTAL_SLOTS = TOTAL_MINUTES / SLOT_MINUTES;
-const DAY_HEIGHT = TOTAL_SLOTS * SLOT_HEIGHT;
 const HOUR_HEIGHT = SLOT_HEIGHT * 2;
+const DEFAULT_START_HOUR = 7;
+const DEFAULT_END_HOUR = 23;
 
-const TIME_SLOTS = Array.from({ length: TOTAL_SLOTS + 1 }, (_, index) => {
-  const minutes = START_HOUR * 60 + index * SLOT_MINUTES;
-  const hour = Math.floor(minutes / 60);
-  const minute = minutes % 60;
-  return {
-    index,
-    isHour: minute === 0,
-    label: `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`,
-  };
-});
+type CalendarHours = {
+  startHour: number;
+  endHour: number;
+  totalMinutes: number;
+  totalSlots: number;
+  dayHeight: number;
+  timeSlots: Array<{ index: number; isHour: boolean; label: string }>;
+};
+
+function buildCalendarHours(startHour: number, endHour: number): CalendarHours {
+  const totalMinutes = (endHour - startHour) * 60;
+  const totalSlots = totalMinutes / SLOT_MINUTES;
+  const dayHeight = totalSlots * SLOT_HEIGHT;
+  const timeSlots = Array.from({ length: totalSlots + 1 }, (_, index) => {
+    const minutes = startHour * 60 + index * SLOT_MINUTES;
+    const hour = Math.floor(minutes / 60);
+    const minute = minutes % 60;
+    return {
+      index,
+      isHour: minute === 0,
+      label: `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`,
+    };
+  });
+  return { startHour, endHour, totalMinutes, totalSlots, dayHeight, timeSlots };
+}
 
 const STATUS_STYLES: Record<string, { box: string; bar: string }> = {
   CONFIRMED: {
@@ -92,8 +104,8 @@ function parseDateParam(value: string | undefined): Date {
   }
 }
 
-function minutesFromStart(d: Date): number {
-  return d.getHours() * 60 + d.getMinutes() - START_HOUR * 60;
+function minutesFromStart(d: Date, startHour: number): number {
+  return d.getHours() * 60 + d.getMinutes() - startHour * 60;
 }
 
 function durationMinutes(startsAt: Date, endsAt: Date): number {
@@ -166,17 +178,20 @@ function buildAppointmentLayout(
   return positioned;
 }
 
-function getAppointmentMetrics(item: PositionedAppointment): {
+function getAppointmentMetrics(
+  item: PositionedAppointment,
+  hours: CalendarHours
+): {
   style: CSSProperties;
   height: number;
 } {
   const startMin = Math.max(
     0,
-    Math.min(TOTAL_MINUTES, minutesFromStart(item.appointment.startsAt))
+    Math.min(hours.totalMinutes, minutesFromStart(item.appointment.startsAt, hours.startHour))
   );
   const endMin = Math.max(
     startMin + 15,
-    Math.min(TOTAL_MINUTES, minutesFromStart(item.appointment.endsAt))
+    Math.min(hours.totalMinutes, minutesFromStart(item.appointment.endsAt, hours.startHour))
   );
   const top = (startMin / SLOT_MINUTES) * SLOT_HEIGHT;
   const height = Math.max(44, ((endMin - startMin) / SLOT_MINUTES) * SLOT_HEIGHT - 4);
@@ -214,11 +229,22 @@ export default async function CalendarPage({
   const weekEnd = endOfWeek(cursor, { weekStartsOn: 1 });
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
-  const staff = await prisma.staff.findMany({
-    where: { tenantId, active: true },
-    orderBy: { name: "asc" },
-    select: { id: true, name: true },
-  });
+  const [tenant, staff] = await Promise.all([
+    prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { calendarStartHour: true, calendarEndHour: true },
+    }),
+    prisma.staff.findMany({
+      where: { tenantId, active: true },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
+    }),
+  ]);
+
+  const startHour = tenant?.calendarStartHour ?? DEFAULT_START_HOUR;
+  const endHourRaw = tenant?.calendarEndHour ?? DEFAULT_END_HOUR;
+  const endHour = endHourRaw > startHour ? endHourRaw : startHour + 1;
+  const hours = buildCalendarHours(startHour, endHour);
 
   const appointments = await prisma.appointment.findMany({
     where: {
@@ -253,56 +279,63 @@ export default async function CalendarPage({
 
   return (
     <div className="w-full space-y-5">
-      <PageHeader
-        title="Calendario"
-        description={`Semana del ${format(weekStart, "d MMM", { locale: es })} al ${format(weekEnd, "d MMM yyyy", { locale: es })}${selectedStaff ? ` · ${selectedStaff.name}` : ""}`}
-      />
-
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900">
-        <div className="inline-flex overflow-hidden rounded-md border border-zinc-200 dark:border-zinc-700">
-          <Link
-            href={buildHref({ date: addDays(weekStart, -7) })}
-            className="flex items-center px-2.5 py-1.5 text-sm text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
-            aria-label="Semana anterior"
-          >
-            <ChevronLeftIcon />
-          </Link>
-          <Link
-            href={buildHref({ date: new Date() })}
-            className="border-x border-zinc-200 px-3 py-1.5 text-sm font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
-          >
-            Hoy
-          </Link>
-          <Link
-            href={buildHref({ date: addDays(weekStart, 7) })}
-            className="flex items-center px-2.5 py-1.5 text-sm text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
-            aria-label="Semana siguiente"
-          >
-            <ChevronRightIcon />
-          </Link>
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Calendario</h1>
+          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+            {`Semana del ${format(weekStart, "d MMM", { locale: es })} al ${format(weekEnd, "d MMM yyyy", { locale: es })}${selectedStaff ? ` · ${selectedStaff.name}` : ""}`}
+          </p>
         </div>
 
-        <form className="flex items-center gap-2">
-          <select
-            name="staff"
-            defaultValue={sp.staff ?? ""}
-            className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-950"
-          >
-            <option value="">Todos los profesionales</option>
-            {staff.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
-          {sp.date && <input type="hidden" name="date" value={sp.date} />}
-          <button
-            type="submit"
-            className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
-          >
-            Filtrar
-          </button>
-        </form>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="inline-flex overflow-hidden rounded-md border border-zinc-200 dark:border-zinc-700">
+            <Link
+              href={buildHref({ date: addDays(weekStart, -7) })}
+              className="flex items-center px-2.5 py-1.5 text-sm text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+              aria-label="Semana anterior"
+            >
+              <ChevronLeftIcon />
+            </Link>
+            <Link
+              href={buildHref({ date: new Date() })}
+              className="border-x border-zinc-200 px-3 py-1.5 text-sm font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+            >
+              Hoy
+            </Link>
+            <Link
+              href={buildHref({ date: addDays(weekStart, 7) })}
+              className="flex items-center px-2.5 py-1.5 text-sm text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+              aria-label="Semana siguiente"
+            >
+              <ChevronRightIcon />
+            </Link>
+            <div className="border-l border-zinc-200 dark:border-zinc-700">
+              <DateJumpButton currentDate={toIsoDate(cursor)} staff={sp.staff} />
+            </div>
+          </div>
+
+          <form className="flex items-center gap-2">
+            <select
+              name="staff"
+              defaultValue={sp.staff ?? ""}
+              className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-950"
+            >
+              <option value="">Todos los profesionales</option>
+              {staff.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+            {sp.date && <input type="hidden" name="date" value={sp.date} />}
+            <button
+              type="submit"
+              className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+            >
+              Filtrar
+            </button>
+          </form>
+        </div>
       </div>
 
       <div className="md:hidden">
@@ -339,11 +372,18 @@ export default async function CalendarPage({
           today={today}
           minWidth="22rem"
           showHeader={false}
+          hours={hours}
         />
       </div>
 
       <div className="hidden md:block">
-        <CalendarGrid days={dayGroups} today={today} minWidth="1120px" showHeader />
+        <CalendarGrid
+          days={dayGroups}
+          today={today}
+          minWidth="100%"
+          showHeader
+          hours={hours}
+        />
       </div>
 
       <div className="flex flex-wrap items-center gap-4 text-xs text-zinc-500">
@@ -365,11 +405,13 @@ function CalendarGrid({
   today,
   minWidth,
   showHeader,
+  hours,
 }: {
   days: Array<{ day: Date; appointments: AppointmentWithDetails[] }>;
   today: Date;
   minWidth: string;
   showHeader: boolean;
+  hours: CalendarHours;
 }) {
   return (
     <div className="overflow-x-auto rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
@@ -412,13 +454,14 @@ function CalendarGrid({
           </>
         )}
 
-        <TimeAxis />
+        <TimeAxis hours={hours} />
         {days.map(({ day, appointments }) => (
           <DayColumn
             key={`col-${day.toISOString()}`}
             day={day}
             appointments={appointments}
             today={today}
+            hours={hours}
           />
         ))}
       </div>
@@ -426,13 +469,13 @@ function CalendarGrid({
   );
 }
 
-function TimeAxis() {
+function TimeAxis({ hours }: { hours: CalendarHours }) {
   return (
     <div
       className="relative border-r border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950"
-      style={{ height: DAY_HEIGHT }}
+      style={{ height: hours.dayHeight }}
     >
-      {TIME_SLOTS.map((slot) => (
+      {hours.timeSlots.map((slot) => (
         <div
           key={slot.label}
           className={`absolute left-0 right-0 -translate-y-1/2 pr-2 text-right ${
@@ -451,10 +494,12 @@ function DayColumn({
   day,
   appointments,
   today,
+  hours,
 }: {
   day: Date;
   appointments: AppointmentWithDetails[];
   today: Date;
+  hours: CalendarHours;
 }) {
   const isToday = isSameDay(day, today);
   const positioned = buildAppointmentLayout(appointments);
@@ -464,9 +509,9 @@ function DayColumn({
       className={`relative border-r border-zinc-200 last:border-r-0 dark:border-zinc-800 ${
         isToday ? "bg-sky-50/20 dark:bg-sky-950/10" : ""
       }`}
-      style={{ height: DAY_HEIGHT }}
+      style={{ height: hours.dayHeight }}
     >
-      {TIME_SLOTS.map((slot) => (
+      {hours.timeSlots.map((slot) => (
         <div
           key={`${day.toISOString()}-${slot.label}`}
           className={`absolute left-0 right-0 border-t ${
@@ -480,14 +525,14 @@ function DayColumn({
 
       {isToday && (
         <NowLine
-          startHour={START_HOUR}
-          endHour={END_HOUR}
+          startHour={hours.startHour}
+          endHour={hours.endHour}
           hourHeight={HOUR_HEIGHT}
         />
       )}
 
       {positioned.map((item) => {
-        const { style, height } = getAppointmentMetrics(item);
+        const { style, height } = getAppointmentMetrics(item, hours);
         return (
           <AppointmentBlock
             key={item.appointment.id}

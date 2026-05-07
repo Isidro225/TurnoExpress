@@ -20,16 +20,23 @@ const logoSchema = z
   .optional()
   .nullable();
 
-const settingsSchema = z.object({
-  name: z.string().min(2).max(80),
-  businessType: z.enum(BUSINESS_TYPE_VALUES).optional().nullable(),
-  description: z.string().max(500).optional().nullable(),
-  primaryColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional().nullable(),
-  titleFont: z.enum(TENANT_TITLE_FONT_VALUES),
-  depositPct: z.coerce.number().int().min(0).max(100),
-  depositMinArs: z.coerce.number().min(0).max(10_000_000),
-  logoUrl: logoSchema,
-});
+const settingsSchema = z
+  .object({
+    name: z.string().min(2).max(80),
+    businessType: z.enum(BUSINESS_TYPE_VALUES).optional().nullable(),
+    description: z.string().max(500).optional().nullable(),
+    primaryColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional().nullable(),
+    titleFont: z.enum(TENANT_TITLE_FONT_VALUES),
+    depositPct: z.coerce.number().int().min(0).max(100),
+    depositMinArs: z.coerce.number().min(0).max(10_000_000),
+    calendarStartHour: z.coerce.number().int().min(0).max(23),
+    calendarEndHour: z.coerce.number().int().min(1).max(24),
+    logoUrl: logoSchema,
+  })
+  .refine((d) => d.calendarEndHour > d.calendarStartHour, {
+    message: "La hora de fin debe ser mayor a la de inicio",
+    path: ["calendarEndHour"],
+  });
 
 export async function updateSettings(formData: FormData) {
   const session = await auth();
@@ -44,6 +51,8 @@ export async function updateSettings(formData: FormData) {
     titleFont: formData.get("titleFont") || "system",
     depositPct: formData.get("depositPct") ?? 30,
     depositMinArs: formData.get("depositMinArs") ?? 0,
+    calendarStartHour: formData.get("calendarStartHour") ?? 7,
+    calendarEndHour: formData.get("calendarEndHour") ?? 23,
     logoUrl: formData.get("logoUrl") || null,
   });
 
@@ -57,6 +66,8 @@ export async function updateSettings(formData: FormData) {
       titleFont: data.titleFont,
       depositPct: data.depositPct,
       depositMinCents: Math.round(data.depositMinArs * 100),
+      calendarStartHour: data.calendarStartHour,
+      calendarEndHour: data.calendarEndHour,
       logoUrl: data.logoUrl || null,
     },
   });

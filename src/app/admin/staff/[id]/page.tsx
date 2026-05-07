@@ -42,7 +42,7 @@ export default async function EditStaffPage({
   const assignedServiceIds = new Set(staff.services.map((s) => s.serviceId));
 
   return (
-    <div className="space-y-10">
+    <div className="mx-auto w-full max-w-6xl space-y-10">
       <div>
         <h1 className="text-2xl font-semibold mb-6">Editar persona</h1>
         <StaffForm

@@ -24,7 +24,7 @@ export default async function PriorServicesPage() {
   });
 
   return (
-    <div>
+    <div className="mx-auto w-full max-w-6xl">
       <ServicesTabs active="prior" showNails />
       <PageHeader
         title="Servicios previos"

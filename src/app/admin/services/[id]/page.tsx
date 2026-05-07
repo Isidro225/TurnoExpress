@@ -19,7 +19,7 @@ export default async function EditServicePage({
   if (!service) notFound();
 
   return (
-    <div>
+    <div className="mx-auto w-full max-w-6xl">
       <h1 className="text-2xl font-semibold mb-6">Editar servicio</h1>
       <ServiceForm
         action={updateService.bind(null, service.id)}

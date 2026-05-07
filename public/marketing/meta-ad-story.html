@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1080, initial-scale=1" />
+    <title>TurnoExpress Meta Ad Story</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: #07131f;
+        font-family: "Segoe UI", Arial, sans-serif;
+      }
+
+      .creative {
+        position: relative;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        color: #ffffff;
+        background:
+          linear-gradient(180deg, #07131f 0%, #073246 43%, #0ea5c6 100%),
+          #07131f;
+      }
+
+      .top-panel {
+        position: absolute;
+        left: 90px;
+        right: 90px;
+        top: 278px;
+        display: flex;
+        height: 152px;
+        align-items: center;
+        justify-content: center;
+        border-radius: 40px;
+        background: #ffffff;
+        box-shadow: 0 28px 60px rgba(0, 0, 0, 0.22);
+      }
+
+      .top-panel img {
+        width: 500px;
+        height: auto;
+        display: block;
+      }
+
+      .copy {
+        position: absolute;
+        left: 96px;
+        top: 508px;
+        width: 850px;
+      }
+
+      h1 {
+        margin: 0;
+        color: #ffffff;
+        font-size: 84px;
+        font-weight: 900;
+        line-height: 0.98;
+        letter-spacing: 0;
+      }
+
+      h1 span {
+        color: #35d69f;
+      }
+
+      .subhead {
+        margin: 34px 0 0;
+        width: 780px;
+        color: #d7eff7;
+        font-size: 36px;
+        font-weight: 600;
+        line-height: 1.26;
+        letter-spacing: 0;
+      }
+
+      .benefits {
+        position: absolute;
+        left: 96px;
+        top: 802px;
+        display: flex;
+        gap: 20px;
+      }
+
+      .benefit {
+        display: flex;
+        min-width: 244px;
+        height: 70px;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.15);
+        color: #ffffff;
+        font-size: 25px;
+        font-weight: 900;
+      }
+
+      .benefit.primary {
+        background: #35d69f;
+        color: #06131a;
+      }
+
+      .phone {
+        position: absolute;
+        left: 210px;
+        top: 960px;
+        width: 660px;
+        height: 818px;
+        border: 24px solid #091322;
+        border-radius: 88px;
+        background: #f8fbff;
+        box-shadow: 42px 52px 0 rgba(7, 19, 31, 0.22);
+        overflow: hidden;
+      }
+
+      .phone::before {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: 18px;
+        width: 140px;
+        height: 14px;
+        border-radius: 999px;
+        background: #aab5c2;
+        transform: translateX(-50%);
+      }
+
+      .screen {
+        position: absolute;
+        inset: 60px 26px 28px;
+        overflow: hidden;
+        border-radius: 54px;
+        background: #ffffff;
+        color: #08111f;
+      }
+
+      .screen-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 40px 38px 28px;
+        border-bottom: 2px solid #e5eef7;
+      }
+
+      .screen-title strong {
+        display: block;
+        font-size: 30px;
+        font-weight: 900;
+      }
+
+      .screen-title span {
+        display: block;
+        margin-top: 8px;
+        color: #697b91;
+        font-size: 20px;
+        font-weight: 700;
+      }
+
+      .badge {
+        display: flex;
+        width: 148px;
+        height: 58px;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        background: #e0f4ff;
+        color: #0369a1;
+        font-size: 21px;
+        font-weight: 900;
+      }
+
+      .agenda {
+        padding: 28px 38px;
+      }
+
+      .row {
+        display: grid;
+        grid-template-columns: 86px 1fr;
+        gap: 24px;
+        align-items: center;
+        min-height: 112px;
+        border-bottom: 2px solid #e9f0f7;
+        color: #8b9bb0;
+        font-size: 22px;
+        font-weight: 800;
+      }
+
+      .appt {
+        border: 4px solid #0ea5e9;
+        border-radius: 24px;
+        padding: 18px 22px;
+        background: #e0f4ff;
+        color: #075985;
+      }
+
+      .appt.green {
+        border-color: #22c55e;
+        background: #dcfce7;
+        color: #166534;
+      }
+
+      .appt.amber {
+        border-color: #f59e0b;
+        background: #fef3c7;
+        color: #92400e;
+      }
+
+      .appt strong {
+        display: block;
+        font-size: 28px;
+        font-weight: 900;
+        line-height: 1.05;
+      }
+
+      .appt span {
+        display: block;
+        margin-top: 5px;
+        font-size: 20px;
+        font-weight: 700;
+      }
+
+      .floating-cta {
+        position: absolute;
+        left: 178px;
+        right: 178px;
+        top: 1408px;
+        z-index: 2;
+        display: flex;
+        height: 92px;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        background: #35d69f;
+        color: #06131a;
+        font-size: 34px;
+        font-weight: 950;
+        box-shadow: 0 26px 54px rgba(0, 0, 0, 0.26);
+      }
+    </style>
+  </head>
+  <body>
+    <main class="creative" aria-label="Anuncio vertical de TurnoExpress para Meta Ads">
+      <section class="top-panel">
+        <img src="../logo.png" alt="TurnoExpress" />
+      </section>
+
+      <section class="copy">
+        <h1>Dejá de perder <span>turnos</span>.</h1>
+        <p class="subhead">Tus clientes reservan online y vos cobrás la seña antes de atender.</p>
+      </section>
+
+      <section class="benefits" aria-label="Beneficios">
+        <div class="benefit primary">24/7</div>
+        <div class="benefit">Mercado Pago</div>
+        <div class="benefit">Agenda simple</div>
+      </section>
+
+      <section class="phone" aria-label="Vista previa de la agenda">
+        <div class="screen">
+          <div class="screen-top">
+            <div class="screen-title">
+              <strong>Agenda de hoy</strong>
+              <span>Miércoles 6 de mayo</span>
+            </div>
+            <div class="badge">+12 turnos</div>
+          </div>
+          <div class="agenda">
+            <div class="row">
+              <span>10:30</span>
+              <div class="appt green">
+                <strong>Carolina</strong>
+                <span>Capping + diseño</span>
+              </div>
+            </div>
+            <div class="row">
+              <span>13:00</span>
+              <div class="appt">
+                <strong>Martina</strong>
+                <span>Soft gel</span>
+              </div>
+            </div>
+            <div class="row">
+              <span>15:30</span>
+              <div class="appt amber">
+                <strong>Paula</strong>
+                <span>Seña confirmada</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="floating-cta">Crear mi turnera</div>
+    </main>
+  </body>
+</html>

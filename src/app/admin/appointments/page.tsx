@@ -28,7 +28,7 @@ export default async function AppointmentsPage() {
   const showUsageCard = usage.appointmentsThisMonth.limit != null;
 
   return (
-    <div>
+    <div className="mx-auto w-full max-w-6xl">
       <PageHeader
         title="Turnos"
         description="Los últimos 50 turnos. Tocá uno para ver detalle, reagendar o cancelar."

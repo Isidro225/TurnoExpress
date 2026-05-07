@@ -36,6 +36,10 @@ model Tenant {
   // la seña final será max(porcentaje, depositMinCents, piso técnico de MP).
   depositMinCents Int    @default(0)
 
+  // Franja horaria visible en el calendario admin (0..24, end > start).
+  calendarStartHour Int @default(7)
+  calendarEndHour   Int @default(23)
+
   // Billing de TurnoExpress (abono mensual que paga el negocio a la plataforma)
   billingPlan          String  @default("pro")
   billingStatus        String  @default("pending")

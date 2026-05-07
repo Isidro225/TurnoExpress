@@ -51,7 +51,7 @@ export default async function AppointmentDetailPage({
   const defaultTime = appointment.startsAt.toISOString().slice(11, 16);
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto w-full max-w-6xl space-y-6">
       <PageHeader
         title={appointment.customerName}
         breadcrumbs={[

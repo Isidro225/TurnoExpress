@@ -10,7 +10,7 @@ export default async function NewServicePage() {
     select: { businessType: true },
   });
   return (
-    <div>
+    <div className="mx-auto w-full max-w-6xl">
       <h1 className="text-2xl font-semibold mb-6">Nuevo servicio</h1>
       <ServiceForm
         action={createService}

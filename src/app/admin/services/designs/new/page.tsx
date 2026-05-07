@@ -14,7 +14,7 @@ export default async function NewDesignPage() {
   if (tenant?.businessType !== "nails") notFound();
 
   return (
-    <div>
+    <div className="mx-auto w-full max-w-6xl">
       <h1 className="text-2xl font-semibold mb-6">Nuevo diseño</h1>
       <DesignForm action={createDesign} submitLabel="Crear" />
     </div>

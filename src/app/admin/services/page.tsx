@@ -29,7 +29,7 @@ export default async function ServicesPage() {
   const isNails = tenant?.businessType === "nails";
 
   return (
-    <div>
+    <div className="mx-auto w-full max-w-6xl">
       <ServicesTabs active="services" showNails={isNails} />
       <PageHeader
         title="Servicios"

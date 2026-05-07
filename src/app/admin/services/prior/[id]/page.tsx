@@ -19,7 +19,7 @@ export default async function EditPriorServicePage({
   if (!item || tenant?.businessType !== "nails") notFound();
 
   return (
-    <div>
+    <div className="mx-auto w-full max-w-6xl">
       <h1 className="text-2xl font-semibold mb-6">Editar servicio previo</h1>
       <PriorServiceForm
         action={updatePriorService.bind(null, item.id)}

@@ -94,7 +94,8 @@ export default async function SettingsPage({
       : tenant.billingStatus;
 
   return (
-    <div className="max-w-3xl space-y-8">
+    <div className="mx-auto w-full max-w-6xl">
+      <div className="max-w-3xl space-y-8">
       <PageHeader
         title="Configuración"
         description="Personalizá tu turnera y conectá tu cuenta de Mercado Pago."
@@ -365,6 +366,36 @@ export default async function SettingsPage({
               />
             </div>
           </Field>
+          <Field
+            label="Franja horaria del calendario"
+            hint="Hora de inicio y fin que se ven en la agenda. La hora de fin debe ser mayor."
+          >
+            <div className="flex items-center gap-2">
+              <select
+                name="calendarStartHour"
+                defaultValue={tenant.calendarStartHour}
+                className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm transition focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20 dark:border-zinc-700 dark:bg-zinc-950"
+              >
+                {Array.from({ length: 24 }, (_, h) => (
+                  <option key={h} value={h}>
+                    {String(h).padStart(2, "0")}:00
+                  </option>
+                ))}
+              </select>
+              <span className="text-sm text-zinc-500">a</span>
+              <select
+                name="calendarEndHour"
+                defaultValue={tenant.calendarEndHour}
+                className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm transition focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20 dark:border-zinc-700 dark:bg-zinc-950"
+              >
+                {Array.from({ length: 24 }, (_, i) => i + 1).map((h) => (
+                  <option key={h} value={h}>
+                    {String(h).padStart(2, "0")}:00
+                  </option>
+                ))}
+              </select>
+            </div>
+          </Field>
 
           <div className="rounded-lg border border-dashed border-zinc-300 bg-zinc-50 p-3 dark:border-zinc-700 dark:bg-zinc-950">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
@@ -475,6 +506,7 @@ export default async function SettingsPage({
           </div>
         </details>
       </Section>
+      </div>
     </div>
   );
 }

@@ -124,6 +124,12 @@ const createSchema = z.object({
   customerEmail: z.string().email(),
   customerPhone: z.string().max(40).optional().nullable(),
   notes: z.string().max(500).optional().nullable(),
+  // Específicos del flujo de uñas. Otros tipos los mandan vacíos/null.
+  secondaryServiceId: z.string().min(1).optional().nullable(),
+  designId: z.string().min(1).optional().nullable(),
+  procedureMode: z.enum(["fresh", "service", "retiro"]).optional().nullable(),
+  priorServiceId: z.string().min(1).optional().nullable(),
+  priorAge: z.enum(["D15_21", "D21_25", "MONTH_PLUS"]).optional().nullable(),
 });
 
 export async function createAppointment(formData: FormData) {
@@ -137,11 +143,22 @@ export async function createAppointment(formData: FormData) {
     customerEmail: formData.get("customerEmail"),
     customerPhone: formData.get("customerPhone") || null,
     notes: formData.get("notes") || null,
+    secondaryServiceId: formData.get("secondaryServiceId") || null,
+    designId: formData.get("designId") || null,
+    procedureMode: formData.get("procedureMode") || null,
+    priorServiceId: formData.get("priorServiceId") || null,
+    priorAge: formData.get("priorAge") || null,
   });
   if (!parsed.success) throw new Error("Datos inválidos");
 
   // Bloqueo por plan antes de hacer cualquier escritura
   await assertCanCreateAppointment(tenantId);
+
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: tenantId },
+    select: { businessType: true },
+  });
+  const isNails = tenant?.businessType === "nails";
 
   const service = await prisma.service.findFirst({
     where: { id: parsed.data.serviceId, tenantId, active: true },
@@ -158,8 +175,81 @@ export async function createAppointment(formData: FormData) {
     throw new Error("Ese profesional no atiende este servicio");
   }
 
+  // Mismo cálculo que /api/book: extraMinutes y snapshots se computan en el server
+  // a partir de los datos en BD; nunca se confía en lo que llegó del form.
+  let extraMinutes = 0;
+  let priorServiceName: string | null = null;
+  let priorAge: string | null = null;
+  let procedureMode: string | null = isNails ? "fresh" : null;
+  let designId: string | null = null;
+  let designName: string | null = null;
+  let designPriceCents: number | null = null;
+  let secondaryServiceId: string | null = null;
+  let secondaryServiceName: string | null = null;
+  let secondaryServicePriceCents: number | null = null;
+  let secondaryServiceDurationMin: number | null = null;
+
+  if (isNails) {
+    procedureMode = parsed.data.procedureMode ?? "fresh";
+    priorAge = parsed.data.priorAge ?? null;
+
+    if (procedureMode !== "fresh") {
+      if (!parsed.data.priorServiceId) {
+        throw new Error("Falta indicar el servicio previo");
+      }
+      const prior = await prisma.priorService.findFirst({
+        where: { id: parsed.data.priorServiceId, tenantId, active: true },
+      });
+      if (!prior) throw new Error("Servicio previo no disponible");
+      priorServiceName = prior.name;
+      if (procedureMode === "retiro") extraMinutes += prior.removalMin;
+    }
+
+    if (parsed.data.designId) {
+      const design = await prisma.design.findFirst({
+        where: { id: parsed.data.designId, tenantId, active: true },
+      });
+      if (!design) throw new Error("Diseño no disponible");
+      designId = design.id;
+      designName = design.name;
+      designPriceCents = design.priceCents;
+      extraMinutes += design.durationMin;
+    }
+
+    if (parsed.data.secondaryServiceId) {
+      if (parsed.data.secondaryServiceId === service.id) {
+        throw new Error("El servicio secundario debe ser distinto al principal");
+      }
+      const secondary = await prisma.service.findFirst({
+        where: { id: parsed.data.secondaryServiceId, tenantId, active: true },
+      });
+      if (!secondary) throw new Error("Servicio secundario no disponible");
+      const validCombo =
+        (service.category === "hands" && secondary.category === "feet") ||
+        (service.category === "feet" && secondary.category === "hands");
+      if (!validCombo) {
+        throw new Error("Sólo se puede combinar manos con pies");
+      }
+      const secondaryStaffLink = await prisma.staffService.findUnique({
+        where: {
+          staffId_serviceId: { staffId: link.staff.id, serviceId: secondary.id },
+        },
+      });
+      if (!secondaryStaffLink) {
+        throw new Error("Ese profesional no atiende la combinación elegida");
+      }
+      secondaryServiceId = secondary.id;
+      secondaryServiceName = secondary.name;
+      secondaryServicePriceCents = secondary.priceCents;
+      secondaryServiceDurationMin = secondary.durationMin;
+      extraMinutes += secondary.durationMin;
+    }
+  }
+
   const startsAt = new Date(parsed.data.startsAt);
-  const endsAt = new Date(startsAt.getTime() + service.durationMin * 60_000);
+  const endsAt = new Date(
+    startsAt.getTime() + (service.durationMin + extraMinutes) * 60_000
+  );
 
   const conflicts = await prisma.appointment.findMany({
     where: {
@@ -179,6 +269,9 @@ export async function createAppointment(formData: FormData) {
   );
   if (overlapping) throw new Error("Ese horario choca con otro turno");
 
+  const totalPriceCents =
+    service.priceCents + (designPriceCents ?? 0) + (secondaryServicePriceCents ?? 0);
+
   const created = await prisma.appointment.create({
     data: {
       tenantId,
@@ -191,8 +284,19 @@ export async function createAppointment(formData: FormData) {
       customerEmail: parsed.data.customerEmail,
       customerPhone: parsed.data.customerPhone ?? null,
       notes: parsed.data.notes ?? null,
-      priceCents: service.priceCents,
+      priceCents: totalPriceCents,
       depositCents: 0,
+      priorServiceName,
+      priorAge,
+      procedureMode,
+      designId,
+      designName,
+      designPriceCents,
+      secondaryServiceId,
+      secondaryServiceName,
+      secondaryServicePriceCents,
+      secondaryServiceDurationMin,
+      extraMinutes,
     },
   });
 

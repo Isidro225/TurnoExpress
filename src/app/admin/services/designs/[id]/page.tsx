@@ -19,7 +19,7 @@ export default async function EditDesignPage({
   if (!item || tenant?.businessType !== "nails") notFound();
 
   return (
-    <div>
+    <div className="mx-auto w-full max-w-6xl">
       <h1 className="text-2xl font-semibold mb-6">Editar diseño</h1>
       <DesignForm
         action={updateDesign.bind(null, item.id)}

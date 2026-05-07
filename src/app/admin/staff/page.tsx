@@ -24,7 +24,7 @@ export default async function StaffPage() {
   const reached = usage.staff.reached;
 
   return (
-    <div>
+    <div className="mx-auto w-full max-w-6xl">
       <PageHeader
         title="Personal"
         description="Las personas que atienden. Cada una tiene su horario y servicios."

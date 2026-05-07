@@ -24,7 +24,7 @@ export default async function DesignsPage() {
   });
 
   return (
-    <div>
+    <div className="mx-auto w-full max-w-6xl">
       <ServicesTabs active="designs" showNails />
       <PageHeader
         title="Diseños"

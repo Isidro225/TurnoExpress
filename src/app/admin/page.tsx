@@ -128,7 +128,7 @@ export default async function AdminDashboard({
   const confirmRate = totalMonth > 0 ? (confirmedMonth / totalMonth) * 100 : 0;
 
   return (
-    <div className="space-y-8">
+    <div className="mx-auto w-full max-w-6xl space-y-8">
       <PageHeader
         title="Resumen"
         description={`Hola ${session!.user.name ?? session!.user.email}, esto es lo que pasa hoy en tu negocio.`}
