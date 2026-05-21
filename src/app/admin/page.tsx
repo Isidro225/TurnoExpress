@@ -14,6 +14,11 @@ import { es } from "date-fns/locale";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getTenantPlanUsage } from "@/lib/plan-limits";
+import {
+  activePendingPaymentAppointmentWhere,
+  blockingAppointmentWhere,
+  visibleAppointmentWhere,
+} from "@/lib/payment-holds";
 import { EmptyState } from "./_components/EmptyState";
 import { Avatar } from "./_components/Avatar";
 import { StatusBadge } from "./_components/StatusBadge";
@@ -148,11 +153,19 @@ export default async function AdminDashboard({
       select: { calendarStartHour: true, calendarEndHour: true },
     }),
     prisma.appointment.findMany({
-      where: { tenantId, startsAt: { gte: range.start, lte: range.end } },
+      where: {
+        tenantId,
+        startsAt: { gte: range.start, lte: range.end },
+        AND: [visibleAppointmentWhere(now)],
+      },
       select: { id: true, status: true, startsAt: true, serviceId: true, priceCents: true },
     }),
     prisma.appointment.findMany({
-      where: { tenantId, startsAt: { gte: range.prevStart, lte: range.prevEnd } },
+      where: {
+        tenantId,
+        startsAt: { gte: range.prevStart, lte: range.prevEnd },
+        AND: [visibleAppointmentWhere(now)],
+      },
       select: { id: true, status: true, priceCents: true },
     }),
     prisma.customer.count({
@@ -162,7 +175,11 @@ export default async function AdminDashboard({
       where: { tenantId, createdAt: { gte: range.prevStart, lte: range.prevEnd } },
     }),
     prisma.appointment.findMany({
-      where: { tenantId, startsAt: { gte: now } },
+      where: {
+        tenantId,
+        startsAt: { gte: now },
+        AND: [blockingAppointmentWhere(now)],
+      },
       orderBy: { startsAt: "asc" },
       take: 5,
       include: { service: true, staff: true, payments: true },
@@ -170,15 +187,15 @@ export default async function AdminDashboard({
     prisma.appointment.count({
       where: {
         tenantId,
-        status: "PENDING_PAYMENT",
         startsAt: { gte: now, lte: next24h },
+        AND: [activePendingPaymentAppointmentWhere(now)],
       },
     }),
     prisma.appointment.count({
       where: {
         tenantId,
-        status: "PENDING_PAYMENT",
         startsAt: { gte: now, lte: next48h },
+        AND: [activePendingPaymentAppointmentWhere(now)],
       },
     }),
     prisma.appointment.count({
@@ -190,7 +207,11 @@ export default async function AdminDashboard({
     }),
     prisma.appointment.groupBy({
       by: ["serviceId"],
-      where: { tenantId, startsAt: { gte: range.start, lte: range.end } },
+      where: {
+        tenantId,
+        startsAt: { gte: range.start, lte: range.end },
+        AND: [visibleAppointmentWhere(now)],
+      },
       _count: { _all: true },
       _sum: { priceCents: true },
       orderBy: { _count: { serviceId: "desc" } },

@@ -4,6 +4,10 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import {
+  isActivePendingPaymentHold,
+  visibleAppointmentWhere,
+} from "@/lib/payment-holds";
 import { updateCustomer } from "../actions";
 import { PageHeader } from "../../_components/PageHeader";
 import { Avatar } from "../../_components/Avatar";
@@ -18,11 +22,13 @@ export default async function CustomerDetailPage({
   const { id } = await params;
   const session = await auth();
   const tenantId = session!.user.tenantId!;
+  const now = new Date();
 
   const customer = await prisma.customer.findFirst({
     where: { id, tenantId },
     include: {
       appointments: {
+        where: visibleAppointmentWhere(now),
         orderBy: { startsAt: "desc" },
         include: { service: true, staff: true },
       },
@@ -31,7 +37,11 @@ export default async function CustomerDetailPage({
   if (!customer) notFound();
 
   const upcoming = customer.appointments.filter(
-    (a) => a.startsAt >= new Date() && (a.status === "CONFIRMED" || a.status === "PENDING_PAYMENT")
+    (a) =>
+      a.startsAt >= now &&
+      (a.status === "CONFIRMED" ||
+        (a.status === "PENDING_PAYMENT" &&
+          isActivePendingPaymentHold(a.createdAt, now)))
   );
   const totalSpentCents = customer.appointments
     .filter((a) => a.status === "COMPLETED" || a.status === "CONFIRMED")

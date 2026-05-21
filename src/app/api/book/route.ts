@@ -6,6 +6,7 @@ import { createDepositPreference } from "@/lib/mercadopago";
 import { isBookingPaymentBypassEnabled } from "@/lib/booking-payment";
 import { assertCanCreateAppointment, PlanLimitError } from "@/lib/plan-limits";
 import { findOrCreateCustomer } from "@/lib/customers";
+import { blockingAppointmentWhere } from "@/lib/payment-holds";
 
 const bookSchema = z.object({
   tenantSlug: z.string().min(1),
@@ -187,13 +188,14 @@ export async function POST(req: Request) {
   );
 
   // Re-verificación de disponibilidad para evitar race conditions entre dos reservas paralelas.
+  const now = new Date();
   const conflicts = await prisma.appointment.findMany({
     where: {
       tenantId: tenant.id,
       staffId: staffLink.staff.id,
-      status: { in: ["PENDING_PAYMENT", "CONFIRMED"] },
       startsAt: { lt: endsAt },
       endsAt: { gt: startsAt },
+      AND: [blockingAppointmentWhere(now)],
     },
     select: { id: true, startsAt: true, endsAt: true },
   });

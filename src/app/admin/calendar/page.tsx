@@ -12,6 +12,7 @@ import {
 import { es } from "date-fns/locale";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { calendarAppointmentWhere } from "@/lib/payment-holds";
 import { NowLine } from "../_components/NowLine";
 import { DateJumpButton } from "./DateJumpButton";
 import {
@@ -245,12 +246,13 @@ export default async function CalendarPage({
   const endHourRaw = tenant?.calendarEndHour ?? DEFAULT_END_HOUR;
   const endHour = endHourRaw > startHour ? endHourRaw : startHour + 1;
   const hours = buildCalendarHours(startHour, endHour);
+  const now = new Date();
 
   const appointments = await prisma.appointment.findMany({
     where: {
       tenantId,
       startsAt: { gte: weekStart, lte: weekEnd },
-      status: { in: ["PENDING_PAYMENT", "CONFIRMED", "COMPLETED", "NO_SHOW"] },
+      AND: [calendarAppointmentWhere(now)],
       ...(sp.staff ? { staffId: sp.staff } : {}),
     },
     orderBy: { startsAt: "asc" },
@@ -268,7 +270,7 @@ export default async function CalendarPage({
     return qs ? `/admin/calendar?${qs}` : "/admin/calendar";
   };
 
-  const today = new Date();
+  const today = now;
   const dayGroups = days.map((day) => ({
     day,
     appointments: appointments.filter((a) => isSameDay(a.startsAt, day)),

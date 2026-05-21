@@ -63,6 +63,50 @@ function normalizeFilter(value: string | undefined): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
+async function getPlatformData(where: Prisma.TenantWhereInput) {
+  return Promise.all([
+    prisma.tenant.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      take: 200,
+      select: {
+        id: true,
+        name: true,
+        businessType: true,
+        slug: true,
+        active: true,
+        billingPlan: true,
+        billingStatus: true,
+        mpSubscriptionId: true,
+        mpSubscriptionStatus: true,
+        trialEndsAt: true,
+        createdAt: true,
+        users: {
+          orderBy: { createdAt: "asc" },
+          take: 3,
+          select: { email: true, name: true, role: true },
+        },
+        _count: {
+          select: {
+            users: true,
+            staff: true,
+            services: true,
+            appointments: true,
+          },
+        },
+      },
+    }),
+    prisma.tenant.findMany({
+      select: {
+        billingPlan: true,
+        billingStatus: true,
+        active: true,
+        trialEndsAt: true,
+      },
+    }),
+  ]);
+}
+
 export default async function PlatformPage({
   searchParams,
 }: {
@@ -107,47 +151,16 @@ export default async function PlatformPage({
 
   const where: Prisma.TenantWhereInput = and.length ? { AND: and } : {};
 
-  const [tenants, allTenants] = await Promise.all([
-    prisma.tenant.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-      take: 200,
-      select: {
-        id: true,
-        name: true,
-        businessType: true,
-        slug: true,
-        active: true,
-        billingPlan: true,
-        billingStatus: true,
-        mpSubscriptionId: true,
-        mpSubscriptionStatus: true,
-        trialEndsAt: true,
-        createdAt: true,
-        users: {
-          orderBy: { createdAt: "asc" },
-          take: 3,
-          select: { email: true, name: true, role: true },
-        },
-        _count: {
-          select: {
-            users: true,
-            staff: true,
-            services: true,
-            appointments: true,
-          },
-        },
-      },
-    }),
-    prisma.tenant.findMany({
-      select: {
-        billingPlan: true,
-        billingStatus: true,
-        active: true,
-        trialEndsAt: true,
-      },
-    }),
-  ]);
+  const platformData = await getPlatformData(where).catch((error: unknown) => {
+    console.error("Platform data query failed", error);
+    return null;
+  });
+
+  if (!platformData) {
+    return <PlatformDatabaseError />;
+  }
+
+  const [tenants, allTenants] = platformData;
 
   const activeTenants = allTenants.filter((tenant) => tenant.active);
   const activeSubscriptions = activeTenants.filter((tenant) => tenant.billingStatus === "active");
@@ -449,6 +462,24 @@ export default async function PlatformPage({
           </div>
         )}
       </section>
+    </div>
+  );
+}
+
+function PlatformDatabaseError() {
+  return (
+    <div className="rounded-xl border border-amber-200 bg-amber-50 p-6 text-amber-950 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100">
+      <h1 className="text-lg font-semibold">No pudimos conectar con la base de datos</h1>
+      <p className="mt-2 max-w-2xl text-sm text-amber-900/80 dark:text-amber-100/80">
+        La plataforma esta disponible, pero Prisma no pudo leer los negocios. Revisa que la base
+        de Railway este activa y que `DATABASE_URL` tenga el host y puerto actuales.
+      </p>
+      <Link
+        href="/platform"
+        className="mt-4 inline-flex rounded-md bg-amber-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-amber-800 dark:bg-amber-100 dark:text-amber-950 dark:hover:bg-white"
+      >
+        Reintentar
+      </Link>
     </div>
   );
 }

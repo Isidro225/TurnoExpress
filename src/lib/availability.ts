@@ -11,6 +11,7 @@ import {
   isAfter,
 } from "date-fns";
 import { prisma } from "./prisma";
+import { blockingAppointmentWhere } from "./payment-holds";
 
 export type Slot = {
   startsAt: Date;
@@ -74,17 +75,18 @@ export async function getAvailability(args: {
   }
   const weekday = getDay(args.date);
 
+  const now = new Date();
+
   const existingAppts = await prisma.appointment.findMany({
     where: {
       tenantId: args.tenantId,
-      status: { in: ["PENDING_PAYMENT", "CONFIRMED"] },
       startsAt: { gte: startOfDay(args.date), lte: endOfDay(args.date) },
       ...(args.staffId ? { staffId: args.staffId } : {}),
+      AND: [blockingAppointmentWhere(now)],
     },
     select: { staffId: true, startsAt: true, endsAt: true },
   });
 
-  const now = new Date();
   const result: StaffSlots[] = [];
 
   for (const ss of service.staff) {

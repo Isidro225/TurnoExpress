@@ -13,7 +13,7 @@ export default async function SignupPage({
   const initialPlan = normalizeBillingPlan(sp.plan);
 
   return (
-    <div className="relative min-h-screen bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
+    <div className="relative min-h-screen overflow-x-hidden bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
       {/* Fondo decorativo (mismo lenguaje que el hero) */}
       <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[480px] bg-gradient-to-br from-sky-100/70 via-white to-emerald-100/50 dark:from-sky-900/30 dark:via-zinc-950 dark:to-emerald-900/20" />
       <div
@@ -31,7 +31,7 @@ export default async function SignupPage({
 
       <SignupNav />
 
-      <section className="mx-auto max-w-6xl px-6 pt-12 text-center sm:pt-16">
+      <section className="mx-auto max-w-6xl px-4 pt-10 text-center sm:px-6 sm:pt-16">
         <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
           Activá tu turnera en{" "}
           <span className="bg-gradient-to-r from-sky-600 to-emerald-500 bg-clip-text text-transparent">
@@ -54,7 +54,7 @@ export default async function SignupPage({
 function SignupNav() {
   return (
     <header className="sticky top-0 z-30 border-b border-zinc-200 bg-white/80 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/80">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
         <Link
           href="/"
           className="flex items-center transition-transform hover:scale-[1.02]"
@@ -99,7 +99,7 @@ function SignupNav() {
 function SignupFooter() {
   return (
     <footer className="border-t border-zinc-200 py-8 dark:border-zinc-800">
-      <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-6 text-sm text-zinc-500 sm:flex-row">
+      <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-4 text-sm text-zinc-500 sm:flex-row sm:px-6">
         <p>© {new Date().getFullYear()} TurnoExpress</p>
         <div className="flex items-center gap-4">
           <Link href="/#planes" className="hover:text-zinc-900 dark:hover:text-zinc-100">

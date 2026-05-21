@@ -5,6 +5,7 @@ import {
   type BillingPlanId,
   normalizeBillingPlan,
 } from "@/lib/billing-plans";
+import { countedForPlanAppointmentWhere } from "./payment-holds";
 
 export type PlanFeatureKey =
   | "branding"
@@ -127,7 +128,7 @@ export async function getAppointmentsThisMonthCount(tenantId: string): Promise<n
     where: {
       tenantId,
       startsAt: { gte: startOfMonth(now), lte: endOfMonth(now) },
-      status: { not: "CANCELLED" },
+      AND: [countedForPlanAppointmentWhere(now)],
     },
   });
 }

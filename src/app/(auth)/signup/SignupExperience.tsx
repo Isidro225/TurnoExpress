@@ -121,9 +121,9 @@ export function SignupExperience({ initialPlan }: { initialPlan: BillingPlanId }
   const slugPreview = useMemo(() => form.slug.trim().toLowerCase() || "mi-negocio", [form.slug]);
 
   return (
-    <div className="mx-auto grid max-w-6xl gap-8 px-6 pb-20 pt-10 lg:grid-cols-[1.1fr_0.9fr] lg:gap-10 lg:pt-14">
+    <div className="mx-auto grid max-w-6xl gap-6 px-4 pb-16 pt-8 sm:gap-8 sm:px-6 sm:pb-20 sm:pt-10 lg:grid-cols-[1.1fr_0.9fr] lg:gap-10 lg:pt-14">
       {/* ── Form column ─────────────────────────────────────────── */}
-      <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 sm:p-8">
+      <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 sm:p-8">
         <div className="mb-6">
           <p className="mb-2 inline-block rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-sky-700 dark:bg-sky-950 dark:text-sky-300">
             Paso 1 de 2 · Tu cuenta
@@ -202,27 +202,27 @@ export function SignupExperience({ initialPlan }: { initialPlan: BillingPlanId }
             </Field>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Tu nombre">
-              <input
-                required
-                value={form.ownerName}
-                onChange={(e) => update("ownerName", e.target.value)}
-                placeholder="Juan Pérez"
-                className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20 dark:border-zinc-700 dark:bg-zinc-800"
-              />
-            </Field>
-          </div>
+          <Field label="Tu nombre">
+            <input
+              required
+              value={form.ownerName}
+              onChange={(e) => update("ownerName", e.target.value)}
+              placeholder="Juan Pérez"
+              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20 dark:border-zinc-700 dark:bg-zinc-800"
+            />
+          </Field>
 
           <Field label="URL personalizada" hint="Solo letras, números y guiones.">
             <div className="flex items-center rounded-md border border-zinc-300 focus-within:border-sky-500 focus-within:ring-2 focus-within:ring-sky-500/20 dark:border-zinc-700">
-              <span className="px-3 text-sm text-zinc-500">turnoexpress.com/</span>
+              <span className="shrink-0 whitespace-nowrap pl-3 pr-0.5 text-xs text-zinc-500 sm:pr-1 sm:text-sm">
+                turnoexpress.com/
+              </span>
               <input
                 required
                 value={form.slug}
                 onChange={(e) => update("slug", e.target.value.toLowerCase())}
                 placeholder="mi-negocio"
-                className="flex-1 rounded-r-md bg-transparent px-2 py-2 text-sm focus:outline-none dark:bg-zinc-800"
+                className="w-full min-w-0 flex-1 rounded-r-md bg-transparent px-1 py-2 text-sm focus:outline-none sm:px-2 dark:bg-zinc-800"
               />
             </div>
           </Field>

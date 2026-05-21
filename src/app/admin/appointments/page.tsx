@@ -4,6 +4,7 @@ import { es } from "date-fns/locale";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getTenantPlanUsage } from "@/lib/plan-limits";
+import { visibleAppointmentWhere } from "@/lib/payment-holds";
 import { PageHeader } from "../_components/PageHeader";
 import { EmptyState } from "../_components/EmptyState";
 import { Avatar } from "../_components/Avatar";
@@ -14,9 +15,10 @@ import { ClipboardIcon, CreditCardIcon, PlusIcon } from "../_components/AdminIco
 export default async function AppointmentsPage() {
   const session = await auth();
   const tenantId = session!.user.tenantId!;
+  const now = new Date();
   const [appts, usage] = await Promise.all([
     prisma.appointment.findMany({
-      where: { tenantId },
+      where: { tenantId, AND: [visibleAppointmentWhere(now)] },
       orderBy: { startsAt: "desc" },
       take: 50,
       include: { service: true, staff: true, payments: true },

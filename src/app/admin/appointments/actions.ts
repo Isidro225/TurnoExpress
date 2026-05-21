@@ -8,6 +8,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { assertCanCreateAppointment } from "@/lib/plan-limits";
 import { findOrCreateCustomer } from "@/lib/customers";
+import { blockingAppointmentWhere } from "@/lib/payment-holds";
 
 const ALLOWED_STATUSES = ["CONFIRMED", "COMPLETED", "NO_SHOW", "CANCELLED"] as const;
 
@@ -79,14 +80,15 @@ export async function rescheduleAppointment(id: string, formData: FormData) {
   }
 
   // Verificar conflictos con otros turnos del mismo profesional
+  const now = new Date();
   const conflicts = await prisma.appointment.findMany({
     where: {
       tenantId,
       staffId: parsed.data.staffId,
       id: { not: id },
-      status: { in: ["PENDING_PAYMENT", "CONFIRMED"] },
       startsAt: { lt: endsAt },
       endsAt: { gt: startsAt },
+      AND: [blockingAppointmentWhere(now)],
     },
     select: { id: true, startsAt: true, endsAt: true },
   });
@@ -252,13 +254,14 @@ export async function createAppointment(formData: FormData) {
     startsAt.getTime() + (service.durationMin + extraMinutes) * 60_000
   );
 
+  const now = new Date();
   const conflicts = await prisma.appointment.findMany({
     where: {
       tenantId,
       staffId: parsed.data.staffId,
-      status: { in: ["PENDING_PAYMENT", "CONFIRMED"] },
       startsAt: { lt: endsAt },
       endsAt: { gt: startsAt },
+      AND: [blockingAppointmentWhere(now)],
     },
     select: { id: true, startsAt: true, endsAt: true },
   });

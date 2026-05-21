@@ -4,6 +4,7 @@ import { es } from "date-fns/locale";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { normalizePhone } from "@/lib/customers";
+import { visibleAppointmentWhere } from "@/lib/payment-holds";
 import { PageHeader } from "../_components/PageHeader";
 import { EmptyState } from "../_components/EmptyState";
 import { Avatar } from "../_components/Avatar";
@@ -21,6 +22,7 @@ export default async function CustomersPage({
   const sp = await searchParams;
   const q = (sp.q ?? "").trim();
   const normalizedQ = normalizePhone(q);
+  const now = new Date();
 
   const where = q
     ? {
@@ -37,8 +39,11 @@ export default async function CustomersPage({
     orderBy: { updatedAt: "desc" },
     take: PAGE_SIZE,
     include: {
-      _count: { select: { appointments: true } },
+      _count: {
+        select: { appointments: { where: visibleAppointmentWhere(now) } },
+      },
       appointments: {
+        where: visibleAppointmentWhere(now),
         orderBy: { startsAt: "desc" },
         take: 1,
         select: { startsAt: true, service: { select: { name: true } } },

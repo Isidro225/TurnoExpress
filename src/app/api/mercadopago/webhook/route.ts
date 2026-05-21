@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getPlatformSubscription, mpPayment } from "@/lib/mercadopago";
+import { canConfirmAppointmentSlot } from "@/lib/payment-holds";
 
 function mapSubscriptionStatus(status: string | undefined): string {
   const normalized = (status ?? "").toLowerCase();
@@ -112,7 +113,13 @@ export async function POST(req: Request) {
         rawPayload: detail as object,
       },
     });
-    if (mapped === "APPROVED") {
+    if (mapped === "APPROVED" && localPayment!.appointment.status !== "CONFIRMED") {
+      const canConfirm = await canConfirmAppointmentSlot(
+        localPayment!.appointment,
+        tx
+      );
+      if (!canConfirm) return;
+
       await tx.appointment.update({
         where: { id: localPayment!.appointmentId },
         data: { status: "CONFIRMED" },

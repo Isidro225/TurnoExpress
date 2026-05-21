@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getTenantBySlug, isReservedSlug } from "@/lib/tenant";
 import { mpPayment } from "@/lib/mercadopago";
+import { canConfirmAppointmentSlot } from "@/lib/payment-holds";
 
 // MP redirige acá con: payment_id, status, external_reference (appointmentId), preference_id, merchant_order_id.
 // Reconciliamos consultando al MP por seguridad (no confiamos sólo en los query params del cliente).
@@ -39,7 +40,7 @@ export default async function BookingSuccessPage({
   }
 
   // Reconciliar con MP si tenemos payment_id y el negocio tiene token configurado.
-  if (sp.payment_id && tenant.mpAccessToken && appointment.status === "PENDING_PAYMENT") {
+  if (sp.payment_id && tenant.mpAccessToken) {
     try {
       const detail = await mpPayment(tenant.mpAccessToken).get({ id: sp.payment_id });
       const status = (detail.status ?? "").toLowerCase();
@@ -68,7 +69,10 @@ export default async function BookingSuccessPage({
             },
           });
         }
-        if (mapped === "APPROVED") {
+        if (mapped === "APPROVED" && appointment.status !== "CONFIRMED") {
+          const canConfirm = await canConfirmAppointmentSlot(appointment, tx);
+          if (!canConfirm) return;
+
           await tx.appointment.update({
             where: { id: appointment.id },
             data: { status: "CONFIRMED" },
@@ -82,21 +86,29 @@ export default async function BookingSuccessPage({
 
   const fresh = await prisma.appointment.findUnique({
     where: { id: appointment.id },
-    include: { service: true, staff: true },
+    include: { service: true, staff: true, payments: true },
   });
 
   const confirmed = fresh?.status === "CONFIRMED";
+  const paid = fresh?.payments.some((p) => p.status === "APPROVED") ?? false;
+  const needsManualReview = paid && !confirmed;
 
   return (
     <div className="mx-auto max-w-xl px-6 py-12">
       <div className="rounded-xl border border-zinc-200 bg-white p-8 text-center dark:border-zinc-800 dark:bg-zinc-900">
         <h1 className="mb-2 text-2xl font-semibold">
-          {confirmed ? "¡Turno confirmado!" : "Pago en proceso"}
+          {confirmed
+            ? "¡Turno confirmado!"
+            : needsManualReview
+              ? "Pago recibido"
+              : "Pago en proceso"}
         </h1>
         <p className="mb-6 text-sm text-zinc-500">
           {confirmed
             ? "Te enviamos los detalles a tu email."
-            : "En cuanto Mercado Pago confirme el pago tu turno queda confirmado."}
+            : needsManualReview
+              ? "Recibimos la seña, pero el horario necesita revisión. Te vamos a contactar para confirmarlo o reubicarlo."
+              : "En cuanto Mercado Pago confirme el pago tu turno queda confirmado."}
         </p>
         <dl className="space-y-2 text-sm text-left">
           <Row label="Servicio" value={fresh?.service.name ?? "—"} />
