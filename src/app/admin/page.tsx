@@ -147,6 +147,10 @@ export default async function AdminDashboard({
     noShowsRecent,
     topServicesRaw,
     planUsage,
+    activeStaff,
+    staffSchedules,
+    depositsCollectedAgg,
+    depositsPendingAgg,
   ] = await Promise.all([
     prisma.tenant.findUnique({
       where: { id: tenantId },
@@ -158,7 +162,16 @@ export default async function AdminDashboard({
         startsAt: { gte: range.start, lte: range.end },
         AND: [visibleAppointmentWhere(now)],
       },
-      select: { id: true, status: true, startsAt: true, serviceId: true, priceCents: true },
+      select: {
+        id: true,
+        status: true,
+        startsAt: true,
+        endsAt: true,
+        serviceId: true,
+        staffId: true,
+        customerId: true,
+        priceCents: true,
+      },
     }),
     prisma.appointment.findMany({
       where: {
@@ -218,6 +231,35 @@ export default async function AdminDashboard({
       take: 5,
     }),
     getTenantPlanUsage(tenantId),
+    prisma.staff.findMany({
+      where: { tenantId, active: true },
+      select: { id: true, name: true },
+    }),
+    prisma.staffSchedule.findMany({
+      where: { staff: { tenantId, active: true } },
+      select: { weekday: true, startMin: true, endMin: true },
+    }),
+    // Señas cobradas: pagos aprobados de turnos cuyo inicio cae en el rango.
+    prisma.payment.aggregate({
+      where: {
+        tenantId,
+        status: "APPROVED",
+        appointment: { startsAt: { gte: range.start, lte: range.end } },
+      },
+      _sum: { amountCents: true },
+      _count: true,
+    }),
+    // Señas pendientes: turnos futuros con seña requerida aún en ventana de pago.
+    prisma.appointment.aggregate({
+      where: {
+        tenantId,
+        startsAt: { gte: now },
+        depositCents: { gt: 0 },
+        AND: [activePendingPaymentAppointmentWhere(now)],
+      },
+      _sum: { depositCents: true },
+      _count: true,
+    }),
   ]);
 
   const totalRange = rangeAppointments.length;
@@ -267,6 +309,97 @@ export default async function AdminDashboard({
     revenueCents: t._sum.priceCents ?? 0,
   }));
   const topServicesMaxCount = Math.max(1, ...topServices.map((s) => s.count));
+
+  // Desglose por profesional — se computa en memoria desde rangeAppointments (sin query extra).
+  // Solo tiene sentido mostrarlo cuando el negocio tiene más de un profesional activo.
+  const staffMap = new Map(activeStaff.map((s) => [s.id, s.name]));
+  const perStaffMap = new Map<
+    string,
+    { count: number; completed: number; revenueCents: number }
+  >();
+  for (const a of rangeAppointments) {
+    const entry = perStaffMap.get(a.staffId) ?? {
+      count: 0,
+      completed: 0,
+      revenueCents: 0,
+    };
+    entry.count += 1;
+    if (a.status === "COMPLETED") {
+      entry.completed += 1;
+      entry.revenueCents += a.priceCents;
+    }
+    perStaffMap.set(a.staffId, entry);
+  }
+  const perStaff = [...perStaffMap.entries()]
+    .map(([id, v]) => ({ id, name: staffMap.get(id) ?? "Profesional", ...v }))
+    .sort((a, b) => b.count - a.count || b.revenueCents - a.revenueCents);
+  const perStaffMaxCount = Math.max(1, ...perStaff.map((s) => s.count));
+  const showPerStaff = activeStaff.length > 1 && perStaff.length > 0;
+
+  // Ocupación: minutos reservados vs. capacidad según horarios configurados,
+  // medido sólo sobre la porción del rango que ya transcurrió (hasta ahora).
+  const scheduleMinByWeekday = new Map<number, number>();
+  for (const s of staffSchedules) {
+    scheduleMinByWeekday.set(
+      s.weekday,
+      (scheduleMinByWeekday.get(s.weekday) ?? 0) + Math.max(0, s.endMin - s.startMin),
+    );
+  }
+  const occEnd = range.end < now ? range.end : now;
+  let capacityMin = 0;
+  if (scheduleMinByWeekday.size > 0 && occEnd >= range.start) {
+    for (let d = startOfDay(range.start); d <= occEnd; d = addDays(d, 1)) {
+      capacityMin += scheduleMinByWeekday.get(d.getDay()) ?? 0;
+    }
+  }
+  let bookedMin = 0;
+  for (const a of rangeAppointments) {
+    if (a.startsAt > occEnd) continue;
+    if (a.status !== "CONFIRMED" && a.status !== "COMPLETED") continue;
+    bookedMin += Math.max(0, (a.endsAt.getTime() - a.startsAt.getTime()) / 60_000);
+  }
+  const occupancyRate =
+    capacityMin > 0 ? Math.min(100, (bookedMin / capacityMin) * 100) : null;
+
+  // Ingresos proyectados: turnos confirmados a futuro dentro del rango.
+  const projectedAppts = rangeAppointments.filter(
+    (a) => a.status === "CONFIRMED" && a.startsAt > now,
+  );
+  const projectedCents = projectedAppts.reduce((sum, a) => sum + a.priceCents, 0);
+  const projectedCount = projectedAppts.length;
+
+  // Señas
+  const depositsCollectedCents = depositsCollectedAgg._sum.amountCents ?? 0;
+  const depositsCollectedCount = depositsCollectedAgg._count;
+  const depositsPendingCents = depositsPendingAgg._sum.depositCents ?? 0;
+  const depositsPendingCount = depositsPendingAgg._count;
+
+  // Recurrencia: de los clientes con turno en el rango, cuántos ya habían venido
+  // antes (más de un turno en su historial visible).
+  const rangeCustomerIds = [
+    ...new Set(
+      rangeAppointments
+        .map((a) => a.customerId)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  let recurrenceRate: number | null = null;
+  let returningCustomers = 0;
+  const distinctCustomers = rangeCustomerIds.length;
+  if (rangeCustomerIds.length > 0) {
+    const lifetimeCounts = await prisma.appointment.groupBy({
+      by: ["customerId"],
+      where: {
+        tenantId,
+        customerId: { in: rangeCustomerIds },
+        AND: [visibleAppointmentWhere(now)],
+      },
+      _count: { _all: true },
+    });
+    returningCustomers = lifetimeCounts.filter((g) => g._count._all > 1).length;
+    recurrenceRate =
+      distinctCustomers > 0 ? (returningCustomers / distinctCustomers) * 100 : null;
+  }
 
   // Heatmap: día de semana × hora
   const calStart = tenant?.calendarStartHour ?? 8;
@@ -441,6 +574,56 @@ export default async function AdminDashboard({
         />
       </div>
 
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <StatCard
+          icon={<ClockIcon className="h-5 w-5" />}
+          accent="sky"
+          label="Ocupación"
+          value={occupancyRate != null ? `${occupancyRate.toFixed(0)}%` : "—"}
+          subtext={
+            occupancyRate != null
+              ? `${Math.round(bookedMin / 60)} h de ${Math.round(capacityMin / 60)} h agendables`
+              : "Configurá horarios del equipo"
+          }
+        />
+        <StatCard
+          icon={<CalendarIcon className="h-5 w-5" />}
+          accent="emerald"
+          label="Ingresos proyectados"
+          value={projectedCount > 0 ? fmtMoney(projectedCents) : "—"}
+          subtext={
+            projectedCount > 0
+              ? `${projectedCount} ${projectedCount === 1 ? "turno confirmado" : "turnos confirmados"} a futuro`
+              : "Sin confirmados a futuro en el rango"
+          }
+        />
+        <StatCard
+          icon={<CreditCardIcon className="h-5 w-5" />}
+          accent="violet"
+          label="Señas cobradas"
+          value={fmtMoney(depositsCollectedCents)}
+          subtext={`${depositsCollectedCount} ${depositsCollectedCount === 1 ? "pago aprobado" : "pagos aprobados"}`}
+        />
+        <StatCard
+          icon={<CreditCardIcon className="h-5 w-5" />}
+          accent="amber"
+          label="Señas pendientes"
+          value={fmtMoney(depositsPendingCents)}
+          subtext={`${depositsPendingCount} ${depositsPendingCount === 1 ? "turno esperando pago" : "turnos esperando pago"}`}
+        />
+        <StatCard
+          icon={<UsersIcon className="h-5 w-5" />}
+          accent="rose"
+          label="Recurrencia"
+          value={recurrenceRate != null ? `${recurrenceRate.toFixed(0)}%` : "—"}
+          subtext={
+            recurrenceRate != null
+              ? `${returningCustomers} de ${distinctCustomers} ya habían venido`
+              : "Sin clientes registrados en el rango"
+          }
+        />
+      </div>
+
       <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
         {/* Próximos turnos */}
         <section className="rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
@@ -552,6 +735,58 @@ export default async function AdminDashboard({
           )}
         </section>
       </div>
+
+      {/* Por profesional */}
+      {showPerStaff && (
+        <section className="rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="flex items-center justify-between border-b border-zinc-200 px-5 py-3 dark:border-zinc-800">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-500">
+              Por profesional · {range.rangeLabel}
+            </h2>
+            <Link
+              href="/admin/staff"
+              className="text-xs text-sky-600 hover:underline dark:text-sky-400"
+            >
+              Ver equipo →
+            </Link>
+          </div>
+          <ul className="divide-y divide-zinc-100 dark:divide-zinc-800">
+            {perStaff.map((member) => {
+              const widthPct = (member.count / perStaffMaxCount) * 100;
+              const completionRate =
+                member.count > 0 ? (member.completed / member.count) * 100 : 0;
+              return (
+                <li key={member.id} className="px-5 py-3">
+                  <div className="mb-1.5 flex items-center justify-between gap-3">
+                    <span className="flex min-w-0 items-center gap-2">
+                      <Avatar name={member.name} size="sm" />
+                      <span className="truncate text-sm font-medium">{member.name}</span>
+                    </span>
+                    <span className="shrink-0 text-right text-xs text-zinc-500">
+                      <span className="font-semibold text-zinc-700 dark:text-zinc-300">
+                        {fmtMoney(member.revenueCents)}
+                      </span>
+                      <span className="mx-1">·</span>
+                      {member.count} {member.count === 1 ? "turno" : "turnos"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-violet-500 to-sky-500"
+                        style={{ width: `${widthPct}%` }}
+                      />
+                    </div>
+                    <span className="w-28 shrink-0 text-right text-[10px] text-zinc-400">
+                      {member.completed}/{member.count} compl. ({completionRate.toFixed(0)}%)
+                    </span>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
 
       {/* Heatmap */}
       <section className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">

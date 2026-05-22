@@ -15,7 +15,7 @@ const PAGE_SIZE = 50;
 export default async function CustomersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; page?: string }>;
 }) {
   const session = await auth();
   const tenantId = session!.user.tenantId!;
@@ -34,9 +34,17 @@ export default async function CustomersPage({
       }
     : { tenantId };
 
+  const total = await prisma.customer.count({ where });
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const pageParam = Number.parseInt(sp.page ?? "1", 10);
+  const page = Number.isFinite(pageParam)
+    ? Math.min(Math.max(1, pageParam), totalPages)
+    : 1;
+
   const customers = await prisma.customer.findMany({
     where,
     orderBy: { updatedAt: "desc" },
+    skip: (page - 1) * PAGE_SIZE,
     take: PAGE_SIZE,
     include: {
       _count: {
@@ -50,6 +58,16 @@ export default async function CustomersPage({
       },
     },
   });
+
+  const rangeStart = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+  const rangeEnd = (page - 1) * PAGE_SIZE + customers.length;
+  const buildHref = (p: number) => {
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (p > 1) params.set("page", String(p));
+    const qs = params.toString();
+    return qs ? `/admin/customers?${qs}` : "/admin/customers";
+  };
 
   return (
     <div className="mx-auto w-full max-w-6xl">
@@ -130,12 +148,59 @@ export default async function CustomersPage({
         )}
       </div>
 
-      {customers.length === PAGE_SIZE && (
-        <p className="mt-3 text-xs text-zinc-500">
-          Mostrando los primeros {PAGE_SIZE}. Usá la búsqueda para encontrar otros.
-        </p>
+      {total > 0 && (
+        <div className="mt-3 flex items-center justify-between gap-3">
+          <p className="text-xs text-zinc-500">
+            {rangeStart}–{rangeEnd} de {total.toLocaleString("es-AR")}{" "}
+            {total === 1 ? "cliente" : "clientes"}
+          </p>
+          {totalPages > 1 && (
+            <nav className="flex items-center gap-1">
+              <PagerLink href={buildHref(page - 1)} disabled={page <= 1}>
+                ← Anterior
+              </PagerLink>
+              <span className="px-2 text-xs text-zinc-500">
+                Página {page} de {totalPages}
+              </span>
+              <PagerLink href={buildHref(page + 1)} disabled={page >= totalPages}>
+                Siguiente →
+              </PagerLink>
+            </nav>
+          )}
+        </div>
       )}
     </div>
+  );
+}
+
+function PagerLink({
+  href,
+  disabled,
+  children,
+}: {
+  href: string;
+  disabled: boolean;
+  children: React.ReactNode;
+}) {
+  const base =
+    "rounded-md border px-3 py-1.5 text-xs transition";
+  if (disabled) {
+    return (
+      <span
+        aria-disabled="true"
+        className={`${base} cursor-not-allowed border-zinc-200 text-zinc-300 dark:border-zinc-800 dark:text-zinc-700`}
+      >
+        {children}
+      </span>
+    );
+  }
+  return (
+    <Link
+      href={href}
+      className={`${base} border-zinc-300 text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800`}
+    >
+      {children}
+    </Link>
   );
 }
 
