@@ -626,7 +626,7 @@ export default async function AdminDashboard({
 
       <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
         {/* Próximos turnos */}
-        <section className="rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+        <section className="min-w-0 rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
           <div className="flex items-center justify-between border-b border-zinc-200 px-5 py-3 dark:border-zinc-800">
             <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-500">
               Próximos turnos
@@ -687,7 +687,7 @@ export default async function AdminDashboard({
         </section>
 
         {/* Top servicios */}
-        <section className="rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+        <section className="min-w-0 rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
           <div className="flex items-center justify-between border-b border-zinc-200 px-5 py-3 dark:border-zinc-800">
             <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-500">
               Top servicios
