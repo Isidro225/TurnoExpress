@@ -104,8 +104,8 @@ export function AdminSidebar({
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-zinc-200 bg-white transition-transform duration-200 md:sticky md:top-0 md:h-screen md:w-60 md:translate-x-0 dark:border-zinc-800 dark:bg-zinc-900 ${
-          open ? "translate-x-0" : "-translate-x-full"
+        className={`fixed inset-y-0 right-0 z-50 flex w-64 flex-col border-l border-zinc-200 bg-white transition-transform duration-200 md:sticky md:top-0 md:right-auto md:left-0 md:h-screen md:w-60 md:translate-x-0 md:border-l-0 md:border-r dark:border-zinc-800 dark:bg-zinc-900 ${
+          open ? "translate-x-0" : "translate-x-full"
         }`}
       >
         {/* Header sidebar */}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { BusinessTypeIcon } from "@/app/_components/BusinessTypeIcon";
 
 type StaffOption = { id: string; name: string };
@@ -602,14 +602,29 @@ export function BookingFlow(props: Props) {
 }
 
 function BookingHeader({ activeStep, isNails }: { activeStep: number; isNails: boolean }) {
+  const sectionRef = useRef<HTMLElement>(null);
+  const [stuck, setStuck] = useState(false);
+
+  // Detecta cuándo la card queda pegada al top para colapsar el título y dejar
+  // sólo los pills. Sólo aplica en mobile/tablet (en lg+ la card es estática).
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const onScroll = () => setStuck(el.getBoundingClientRect().top <= 0);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   return (
     <section
-      className="overflow-hidden rounded-lg border border-[color:var(--brand-border)] bg-white/95 shadow-sm backdrop-blur"
+      ref={sectionRef}
+      className="sticky top-0 z-30 overflow-hidden rounded-lg border border-[color:var(--brand-border)] bg-white/95 shadow-sm backdrop-blur lg:static lg:z-auto"
       style={{ boxShadow: "0 18px 60px var(--brand-shadow)" }}
     >
-      <div className="px-5 py-5 sm:px-6">
+      <div className={`px-5 transition-[padding] sm:px-6 lg:py-5 ${stuck ? "py-2.5" : "py-5"}`}>
         <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-          <div>
+          <div className={stuck ? "hidden lg:block" : ""}>
             <p className="text-xs font-semibold uppercase text-[color:var(--brand-strong)]">
               Reservá tu turno
             </p>
@@ -984,24 +999,22 @@ function StepProgress({ activeStep, isNails }: { activeStep: number; isNails: bo
         return (
           <div
             key={label}
-            className={`rounded-full border px-3 py-2 transition ${
+            className={`flex flex-col items-center gap-1 rounded-2xl border px-1.5 py-2 text-center transition sm:flex-row sm:gap-2 sm:rounded-full sm:px-3 sm:text-left ${
               active || done
                 ? "border-[color:var(--brand-border)] bg-[color:var(--brand-soft)] text-zinc-950"
                 : "border-zinc-200 bg-white text-zinc-500"
             }`}
           >
-            <div className="flex items-center gap-2">
-              <span
-                className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-semibold ${
-                  active || done
-                    ? "bg-[color:var(--brand)] text-[color:var(--brand-foreground)]"
-                    : "bg-zinc-100 text-zinc-500"
-                }`}
-              >
-                {done ? "✓" : step}
-              </span>
-              <span className="truncate font-medium">{label}</span>
-            </div>
+            <span
+              className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold ${
+                active || done
+                  ? "bg-[color:var(--brand)] text-[color:var(--brand-foreground)]"
+                  : "bg-zinc-100 text-zinc-500"
+              }`}
+            >
+              {done ? "✓" : step}
+            </span>
+            <span className="font-medium leading-tight sm:truncate">{label}</span>
           </div>
         );
       })}

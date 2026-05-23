@@ -149,8 +149,6 @@ export default async function AdminDashboard({
     planUsage,
     activeStaff,
     staffSchedules,
-    depositsCollectedAgg,
-    depositsPendingAgg,
   ] = await Promise.all([
     prisma.tenant.findUnique({
       where: { id: tenantId },
@@ -238,27 +236,6 @@ export default async function AdminDashboard({
     prisma.staffSchedule.findMany({
       where: { staff: { tenantId, active: true } },
       select: { weekday: true, startMin: true, endMin: true },
-    }),
-    // Señas cobradas: pagos aprobados de turnos cuyo inicio cae en el rango.
-    prisma.payment.aggregate({
-      where: {
-        tenantId,
-        status: "APPROVED",
-        appointment: { startsAt: { gte: range.start, lte: range.end } },
-      },
-      _sum: { amountCents: true },
-      _count: true,
-    }),
-    // Señas pendientes: turnos futuros con seña requerida aún en ventana de pago.
-    prisma.appointment.aggregate({
-      where: {
-        tenantId,
-        startsAt: { gte: now },
-        depositCents: { gt: 0 },
-        AND: [activePendingPaymentAppointmentWhere(now)],
-      },
-      _sum: { depositCents: true },
-      _count: true,
     }),
   ]);
 
@@ -367,39 +344,6 @@ export default async function AdminDashboard({
   );
   const projectedCents = projectedAppts.reduce((sum, a) => sum + a.priceCents, 0);
   const projectedCount = projectedAppts.length;
-
-  // Señas
-  const depositsCollectedCents = depositsCollectedAgg._sum.amountCents ?? 0;
-  const depositsCollectedCount = depositsCollectedAgg._count;
-  const depositsPendingCents = depositsPendingAgg._sum.depositCents ?? 0;
-  const depositsPendingCount = depositsPendingAgg._count;
-
-  // Recurrencia: de los clientes con turno en el rango, cuántos ya habían venido
-  // antes (más de un turno en su historial visible).
-  const rangeCustomerIds = [
-    ...new Set(
-      rangeAppointments
-        .map((a) => a.customerId)
-        .filter((id): id is string => Boolean(id)),
-    ),
-  ];
-  let recurrenceRate: number | null = null;
-  let returningCustomers = 0;
-  const distinctCustomers = rangeCustomerIds.length;
-  if (rangeCustomerIds.length > 0) {
-    const lifetimeCounts = await prisma.appointment.groupBy({
-      by: ["customerId"],
-      where: {
-        tenantId,
-        customerId: { in: rangeCustomerIds },
-        AND: [visibleAppointmentWhere(now)],
-      },
-      _count: { _all: true },
-    });
-    returningCustomers = lifetimeCounts.filter((g) => g._count._all > 1).length;
-    recurrenceRate =
-      distinctCustomers > 0 ? (returningCustomers / distinctCustomers) * 100 : null;
-  }
 
   // Heatmap: día de semana × hora
   const calStart = tenant?.calendarStartHour ?? 8;
@@ -518,7 +462,7 @@ export default async function AdminDashboard({
         </section>
       )}
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
         <StatCard
           icon={<DashboardIcon className="h-5 w-5" />}
           accent="sky"
@@ -574,7 +518,7 @@ export default async function AdminDashboard({
         />
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3">
         <StatCard
           icon={<ClockIcon className="h-5 w-5" />}
           accent="sky"
@@ -595,31 +539,6 @@ export default async function AdminDashboard({
             projectedCount > 0
               ? `${projectedCount} ${projectedCount === 1 ? "turno confirmado" : "turnos confirmados"} a futuro`
               : "Sin confirmados a futuro en el rango"
-          }
-        />
-        <StatCard
-          icon={<CreditCardIcon className="h-5 w-5" />}
-          accent="violet"
-          label="Señas cobradas"
-          value={fmtMoney(depositsCollectedCents)}
-          subtext={`${depositsCollectedCount} ${depositsCollectedCount === 1 ? "pago aprobado" : "pagos aprobados"}`}
-        />
-        <StatCard
-          icon={<CreditCardIcon className="h-5 w-5" />}
-          accent="amber"
-          label="Señas pendientes"
-          value={fmtMoney(depositsPendingCents)}
-          subtext={`${depositsPendingCount} ${depositsPendingCount === 1 ? "turno esperando pago" : "turnos esperando pago"}`}
-        />
-        <StatCard
-          icon={<UsersIcon className="h-5 w-5" />}
-          accent="rose"
-          label="Recurrencia"
-          value={recurrenceRate != null ? `${recurrenceRate.toFixed(0)}%` : "—"}
-          subtext={
-            recurrenceRate != null
-              ? `${returningCustomers} de ${distinctCustomers} ya habían venido`
-              : "Sin clientes registrados en el rango"
           }
         />
       </div>
@@ -923,9 +842,9 @@ function StatCard({
   // Para métricas "malas" (cancelaciones), un delta positivo se muestra en rojo.
   const goodDirection = inverted ? !positive : positive;
   return (
-    <div className="rounded-xl border border-zinc-200 bg-white p-4 transition hover:border-zinc-300 hover:shadow-sm dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700">
+    <div className="min-w-0 rounded-xl border border-zinc-200 bg-white p-3 transition hover:border-zinc-300 hover:shadow-sm sm:p-4 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700">
       <div className="flex items-center justify-between">
-        <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${ACCENTS[accent]}`}>
+        <span className={`flex h-7 w-7 items-center justify-center rounded-lg sm:h-8 sm:w-8 ${ACCENTS[accent]}`}>
           {icon}
         </span>
         {delta != null && (
@@ -942,7 +861,7 @@ function StatCard({
           </span>
         )}
       </div>
-      <p className="mt-3 text-2xl font-bold tracking-tight">{value}</p>
+      <p className="mt-2.5 truncate text-xl font-bold tracking-tight sm:mt-3 sm:text-2xl">{value}</p>
       <p className="mt-0.5 text-[11px] text-zinc-500">{label}</p>
       {subtext && <p className="mt-0.5 text-[10px] text-zinc-400">{subtext}</p>}
     </div>
