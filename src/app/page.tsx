@@ -192,9 +192,7 @@ function Hero() {
           className="animate-fade-in-up"
           style={{ animationDelay: "300ms" }}
         >
-          <div className="animate-float">
-            <PhoneMockup />
-          </div>
+          <PhoneMockup />
         </div>
       </div>
     </section>
